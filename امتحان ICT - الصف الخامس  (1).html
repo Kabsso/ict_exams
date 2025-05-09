@@ -1,0 +1,908 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>امتحان الصف الخامس الابتدائي - تكنولوجيا المعلومات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Tajawal', 'Comic Sans MS', Arial, sans-serif;
+            background: #ffe6f0;
+            direction: rtl;
+            text-align: right;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            position: relative;
+            overflow-x: hidden;
+        }
+        .glow-bg {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: radial-gradient(circle, #ffd700 20%, transparent 70%);
+            border-radius: 50%;
+            animation: twinkle 4s infinite;
+            pointer-events: none;
+            z-index: 5;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.3); }
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border: 3px solid transparent;
+            border-image: linear-gradient(to right, #3498db, #e67e22) 1;
+            border-radius: 25px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+            position: relative;
+            z-index: 10;
+        }
+        h1 {
+            color: #d81b60;
+            text-align: center;
+            font-size: 2.8em;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #e67e22;
+            font-size: 2em;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .name-input {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .name-input p {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        .name-input input {
+            padding: 15px;
+            font-size: 1.4em;
+            border: 2px solid #3498db;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 400px;
+            box-sizing: border-box;
+        }
+        .name-input input:focus {
+            border-color: #d81b60;
+            outline: none;
+            box-shadow: 0 0 8px rgba(216, 27, 96, 0.3);
+        }
+        .question {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f0f9ff;
+            border: 2px solid transparent;
+            border-image: linear-gradient(to right, #3498db, #e67e22) 1;
+            border-radius: 15px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .question:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        .question p {
+            font-size: 1.5em;
+            margin: 0 0 15px;
+            color: #2c3e50;
+        }
+        .options label, .true-false label {
+            display: block;
+            margin: 10px 0;
+            font-size: 1.3em;
+            padding: 12px;
+            background: #e6f3ff;
+            border-radius: 10px;
+            transition: background 0.3s, transform 0.2s;
+        }
+        .options label:hover, .true-false label:hover {
+            background: #d1e8ff;
+            transform: scale(1.02);
+        }
+        .options input, .true-false input {
+            margin-left: 15px;
+            transform: scale(1.6);
+        }
+        button {
+            display: block;
+            margin: 30px auto;
+            padding: 15px 40px;
+            background: #d81b60;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.4em;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+        }
+        button:hover {
+            background: #c2185b;
+            transform: scale(1.05);
+        }
+        #result, #correction {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 15px;
+            display: none;
+            font-size: 1.3em;
+        }
+        #result.success {
+            background: #d4edda;
+            color: #155724;
+            text-align: center;
+            border: 3px solid #c3e6cb;
+            position: relative;
+            z-index: 20;
+        }
+        #result.fail {
+            background: #f8d7da;
+            color: #721c24;
+            border: 3px solid #f5c6cb;
+        }
+        #correction {
+            background: #fff3cd;
+            color: #856404;
+            border: 3px solid #ffeeba;
+        }
+        .confetti, .balloon, .sparkle, .firework, .banner, .ribbon, .emoji-rain, .glow-star {
+            position: fixed;
+            display: block;
+            pointer-events: none;
+        }
+        .confetti {
+            width: 10px;
+            height: 10px;
+            background: #f1c40f;
+            animation: fall 6s linear;
+            z-index: 15;
+        }
+        .confetti.circle {
+            border-radius: 50%;
+        }
+        .confetti.heart {
+            background: none;
+            width: 10px;
+            height: 10px;
+            transform: rotate(45deg);
+        }
+        .confetti.heart::before, .confetti.heart::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #e74c3c;
+            border-radius: 50%;
+        }
+        .confetti.heart::before {
+            top: -5px;
+            left: 0;
+        }
+        .confetti.heart::after {
+            top: 0;
+            left: -5px;
+        }
+        @keyframes fall {
+            0% { transform: translateY(-100vh) translateX(0) rotate(0deg); opacity: 1; }
+            50% { transform: translateY(0vh) translateX(20px) rotate(360deg); opacity: 0.8; }
+            100% { transform: translateY(100vh) translateX(-20px) rotate(720deg); opacity: 0; }
+        }
+        .balloon {
+            width: 30px;
+            height: 40px;
+            background: #e91e63;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            animation: float 10s ease-in-out;
+            box-shadow: 0 0 8px rgba(233, 30, 99, 0.3);
+            z-index: 10;
+        }
+        @keyframes float {
+            0% { transform: translateY(100vh) translateX(0) rotate(0deg); opacity: 1; }
+            50% { transform: translateY(50vh) translateX(10px) rotate(5deg); opacity: 0.9; }
+            100% { transform: translateY(-100vh) translateX(-10px) rotate(-5deg); opacity: 0; }
+        }
+        .sparkle {
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #ffd700 30%, transparent 70%);
+            border-radius: 50%;
+            animation: sparkle 2s ease-in-out;
+            z-index: 25;
+        }
+        @keyframes sparkle {
+            0% { transform: scale(0) rotate(0deg); opacity: 1; }
+            50% { transform: scale(1.5) rotate(180deg); opacity: 0.9; }
+            100% { transform: scale(0) rotate(360deg); opacity: 0; }
+        }
+        .firework {
+            width: 12px;
+            height: 12px;
+            background: #ffd700;
+            border-radius: 50%;
+            animation: firework 1.5s ease-out;
+            z-index: 15;
+        }
+        .firework.star {
+            background: none;
+            background: radial-gradient(circle, #ff4081 20%, transparent 70%);
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+        }
+        @keyframes firework {
+            0% { transform: translate(0, 0) scale(0); opacity: 1; }
+            100% { transform: translate(100px, 100px) scale(1.2); opacity: 0; }
+        }
+        .banner {
+            width: 300px;
+            height: 60px;
+            background: linear-gradient(45deg, #ff4081, #ffd700);
+            color: #fff;
+            font-size: 1.8em;
+            text-align: center;
+            line-height: 60px;
+            border-radius: 15px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+            animation: pulse-banner 3s ease-in-out infinite;
+            z-index: 30;
+        }
+        .banner.top {
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .banner.bottom {
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        @keyframes pulse-banner {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.05); }
+        }
+        .ribbon {
+            width: 200px;
+            height: 50px;
+            background: linear-gradient(45deg, #ffd700, #ff9800);
+            animation: sway 3s ease-in-out infinite;
+            z-index: 10;
+        }
+        .ribbon.top-left {
+            top: 0;
+            left: 0;
+            transform: rotate(-45deg);
+            transform-origin: top left;
+        }
+        .ribbon.bottom-right {
+            bottom: 0;
+            right: 0;
+            transform: rotate(-45deg);
+            transform-origin: bottom right;
+        }
+        @keyframes sway {
+            0%, 100% { transform: rotate(-45deg) translateX(0); }
+            50% { transform: rotate(-45deg) translateX(10px); }
+        }
+        .emoji-rain {
+            font-size: 16px;
+            animation: fall 5s linear;
+            z-index: 15;
+        }
+        .glow-star {
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, #ffffff 20%, transparent 70%);
+            border-radius: 50%;
+            animation: glow-star 3s ease-in-out infinite;
+            z-index: 5;
+        }
+        @keyframes glow-star {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.2); }
+        }
+        .trophy {
+            display: inline-block;
+            font-size: 3.5em;
+            animation: bounce 1.5s ease-in-out infinite;
+            position: relative;
+            text-shadow: 0 0 8px #ffd700, 0 0 15px #ffd700;
+            z-index: 25;
+        }
+        .trophy::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, #ffd700 10%, transparent 50%);
+            top: 0;
+            left: 0;
+            animation: glow-trophy 2s ease-in-out infinite;
+            z-index: -1;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        @keyframes glow-trophy {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+        }
+        .rainbow-text {
+            animation: rainbow 3s linear infinite, glow-text 1.5s ease-in-out infinite;
+        }
+        @keyframes rainbow {
+            0% { color: #ff0000; }
+            16% { color: #ff9900; }
+            33% { color: #33cc33; }
+            50% { color: #00cccc; }
+            66% { color: #3333ff; }
+            83% { color: #cc00cc; }
+            100% { color: #ff0000; }
+        }
+        @keyframes glow-text {
+            0%, 100% { text-shadow: 0 0 5px rgba(255, 255, 255, 0.5); }
+            50% { text-shadow: 0 0 15px rgba(255, 255, 255, 1); }
+        }
+        .glow {
+            animation: glow 6s ease-in-out infinite;
+        }
+        @keyframes glow {
+            0% { background: linear-gradient(135deg, #ff6b6b, #f0e6ff); }
+            50% { background: linear-gradient(135deg, #f0e6ff, #ffd700); }
+            100% { background: linear-gradient(135deg, #ff6b6b, #f0e6ff); }
+        }
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+        }
+        @media (max-width: 600px) {
+            .container { padding: 15px; }
+            h1 { font-size: 2.2em; }
+            .question p { font-size: 1.3em; }
+            .name-input p { font-size: 1.2em; }
+            .name-input input { width: 90%; font-size: 1.2em; padding: 10px; }
+            .options label, .true-false label { font-size: 1.1em; }
+            .confetti, .balloon, .firework, .emoji-rain { transform: scale(0.7); }
+            .banner { width: 200px; font-size: 1.4em; height: 50px; line-height: 50px; }
+            .trophy { font-size: 2.5em; }
+        }
+        .star-icon:before {
+            content: '🌟 ';
+            font-size: 1.3em;
+        }
+        .correct:before { content: '✅ '; }
+        .incorrect:before { content: '❌ '; }
+        #browser-warning {
+            background: #f8d7da;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+    </style>
+    <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/css3-mediaqueries-js/1.0.0/css3-mediaqueries.min.js"></script>
+    <![endif]-->
+</head>
+<body>
+    <div id="browser-warning" style="display: none;">
+        هذا المتصفح غير مدعوم. يرجى استخدام متصفح حديث مثل Chrome أو Firefox.
+    </div>
+    <div class="container">
+        <h1>🌟 امتحان الصف الخامس الابتدائي - تكنولوجيا المعلومات 🌟</h1>
+        <div id="quiz">
+            <div class="name-input">
+                <p>ادخل اسمك هنا:</p>
+                <input type="text" id="studentName" placeholder="اكتب اسمك هنا" aria-label="اسم الطالب">
+            </div>
+            <div class="section">
+                <h2>أولاً: ضع علامة (✔) أمام العبارة الصحيحة، وعلامة (✘) أمام العبارة غير الصحيحة:</h2>
+                <div class="question true-false" data-answer="✘">
+                    <p class="star-icon">1. يتم إنشاء مواقع الويب عن طريق برنامج WordPress فقط.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf1" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf1" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✔">
+                    <p class="star-icon">2. يمكن تنزيل جميع البرامج بما فيها متصفح كروم ومايكروسوفت من الإنترنت.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf2" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf2" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✘">
+                    <p class="star-icon">3. يستخدم النظام الثنائي القيمتين (1, 2) فقط.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf3" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf3" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✘">
+                    <p class="star-icon">4. تقتصر أنواع محركات البحث على المحركات العامة.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf4" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf4" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✘">
+                    <p class="star-icon">5. تعتبر محادثات الفيديو أحد أشكال الاتصال غير المتزامن.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf5" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf5" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✔">
+                    <p class="star-icon">6. توفر الخرائط الرقمية مثل Google Maps اتجاهات واضحة للأماكن المطلوبة.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf6" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf6" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✔">
+                    <p class="star-icon">7. يجب التأكد من مصادر المعلومات حول أي موضوع أو قضية معينة تعرضها.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf7" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf7" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✔">
+                    <p class="star-icon">8. لا يجب أن يزيد عدد الشرائح في العرض التقديمي عن 10 شرائح.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf8" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf8" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✘">
+                    <p class="star-icon">9. الاتصال غير المتزامن هو التواصل خلال الوقت الفعلي بين الأشخاص.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf9" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf9" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✘">
+                    <p class="star-icon">10. لحل مشكلة توقف شاشة الكمبيوتر عن الاستجابة نضغط على المفاتيح Del + Alt + Home.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf10" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf10" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✔">
+                    <p class="star-icon">11. يجب اختيار حجم ونوع خط مناسب عند إنشاء المواقع الإلكترونية.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf11" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf11" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✘">
+                    <p class="star-icon">12. لا تعتبر المقالات الرقمية أحد مصادر البحث عبر الإنترنت.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf12" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf12" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✔">
+                    <p class="star-icon">13. يسمح برنامج معالج الكلمات لأفراد المجموعة العمل معًا في الوقت نفسه.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf13" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf13" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✔">
+                    <p class="star-icon">14. يمكن استخدام برنامج صانع الأفلام لإنشاء فيلم من مجموعة صور ثابتة.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf14" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf14" value="✘"> ✘</label>
+                    </div>
+                </div>
+            </div>
+            <div class="section">
+                <h2>ثانياً: اختر الإجابة الصحيحة مما يلي:</h2>
+                <div class="question" data-answer="Word Art">
+                    <p class="star-icon">15. في العرض التقديمي يمكن إدراج .............. لزيادة تأثير النص:</p>
+                    <div class="options">
+                        <label><input type="radio" name="q1" value="قصة"> قصة</label>
+                        <label><input type="radio" name="q1" value="فيلم"> فيلم</label>
+                        <label><input type="radio" name="q1" value="Word Art"> Word Art</label>
+                        <label><input type="radio" name="q1" value="لا شيء منها"> لا شيء منها</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="جميع ما سبق">
+                    <p class="star-icon">16. تساعدك لوحة العمل على:</p>
+                    <div class="options">
+                        <label><input type="radio" name="q2" value="تنظيم أفكارك بسهولة"> تنظيم أفكارك بسهولة</label>
+                        <label><input type="radio" name="q2" value="سرد القصص"> سرد القصص</label>
+                        <label><input type="radio" name="q2" value="تقديم عرض منظم ومفهوم"> تقديم عرض منظم ومفهوم</label>
+                        <label><input type="radio" name="q2" value="جميع ما سبق"> جميع ما سبق</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="Download">
+                    <p class="star-icon">17. نضغط على .............. لتثبيت برنامج على جهاز الكمبيوتر:</p>
+                    <div class="options">
+                        <label><input type="radio" name="q3" value="Download"> Download</label>
+                        <label><input type="radio" name="q3" value="Upload"> Upload</label>
+                        <label><input type="radio" name="q3" value="Delete"> Delete</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="المضللة">
+                    <p class="star-icon">18. تعتبر التعليقات المبالغ فيها بالسلب أو الإيجاب من التعليقات:</p>
+                    <div class="options">
+                        <label><input type="radio" name="q4" value="الموثوقة"> الموثوقة</label>
+                        <label><input type="radio" name="q4" value="المضللة"> المضللة</label>
+                        <label><input type="radio" name="q4" value="الرائعة"> الرائعة</label>
+                        <label><input type="radio" name="q4" value="المفيدة"> المفيدة</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="سهل القراءة">
+                    <p class="star-icon">19. أثناء العرض التقديمي يجب أن يكون الخط:</p>
+                    <div class="options">
+                        <label><input type="radio" name="q5" value="سهل القراءة"> سهل القراءة</label>
+                        <label><input type="radio" name="q5" value="صعب القراءة"> صعب القراءة</label>
+                        <label><input type="radio" name="q5" value="صغيرًا جدًا"> صغيرًا جدًا</label>
+                        <label><input type="radio" name="q5" value="لا شيء منها"> لا شيء منها</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="Microsoft Editor">
+                    <p class="star-icon">20. هو برنامج يتحقق من القواعد النحوية والإملائية أثناء الكتابة:</p>
+                    <div class="options">
+                        <label><input type="radio" name="q6" value="Microsoft Editor"> Microsoft Editor</label>
+                        <label><input type="radio" name="q6" value="YouTube"> YouTube</label>
+                        <label><input type="radio" name="q6" value="Game"> Game</label>
+                        <label><input type="radio" name="q6" value="Bing"> Bing</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="/">
+                    <p class="star-icon">21. لقسمة القيم تستخدم علامة:</p>
+                    <div class="options">
+                        <label><input type="radio" name="q7" value="+"> +</label>
+                        <label><input type="radio" name="q7" value="-"> -</label>
+                        <label><input type="radio" name="q7" value="/"> /</label>
+                        <label><input type="radio" name="q7" value="*"> *</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="مصادر موثوقة">
+                    <p class="star-icon">22. يوصى بتنزيل البرامج من:</p>
+                    <div class="options">
+                        <label><input type="radio" name="q8" value="مصادر موثوقة"> مصادر موثوقة</label>
+                        <label><input type="radio" name="q8" value="مصادر خطيرة"> مصادر خطيرة</label>
+                        <label><input type="radio" name="q8" value="مصادر غير موثوقة"> مصادر غير موثوقة</label>
+                        <label><input type="radio" name="q8" value="مصادر مجهولة"> مصادر مجهولة</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="Microsoft Edge">
+                    <p class="star-icon">23. يمكنك تصفح الويب عن طريق برنامج:</p>
+                    <div class="options">
+                        <label><input type="radio" name="q9" value="معالج الكلمات"> معالج الكلمات</label>
+                        <label><input type="radio" name="q9" value="العروض التقديمية"> العروض التقديمية</label>
+                        <label><input type="radio" name="q9" value="الرسام"> الرسام</label>
+                        <label><input type="radio" name="q9" value="Microsoft Edge"> Microsoft Edge</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="كل ما سبق">
+                    <p class="star-icon">24. يجب أن تكون .............. عند التواصل عبر الإنترنت:</p>
+                    <div class="options">
+                        <label><input type="radio" name="q10" value="صبورًا"> صبورًا</label>
+                        <label><input type="radio" name="q10" value="مهذبًا"> مهذبًا</label>
+                        <label><input type="radio" name="q10" value="واضحًا"> واضحًا</label>
+                        <label><input type="radio" name="q10" value="كل ما سبق"> كل ما سبق</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="لوحة العمل">
+                    <p class="star-icon">25. يمكنك استخدام .............. لإعداد عرض تقديمي منظم ومفهوم:</p>
+                    <div class="options">
+                        <label><input type="radio" name="q11" value="لوحة المفاتيح"> لوحة المفاتيح</label>
+                        <label><input type="radio" name="q11" value="لوحة العمل"> لوحة العمل</label>
+                        <label><input type="radio" name="q11" value="الطابعة"> الطابعة</label>
+                        <label><input type="radio" name="q11" value="الماسح الضوئي"> الماسح الضوئي</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="المتزامن">
+                    <p class="star-icon">26. يكون الاتصال .............. مناسبًا بين الأصدقاء أو أفراد الأسرة:</p>
+                    <div class="options">
+                        <label><input type="radio" name="q12" value="غير المتزامن"> غير المتزامن</label>
+                        <label><input type="radio" name="q12" value="المعلق"> المعلق</label>
+                        <label><input type="radio" name="q12" value="المتزامن"> المتزامن</label>
+                        <label><input type="radio" name="q12" value="غير المباشر"> غير المباشر</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="الأسفل">
+                    <p class="star-icon">27. توجد المعلومات الوصفية للموقع في الجزء .............. من الموقع:</p>
+                    <div class="options">
+                        <label><input type="radio" name="q13" value="الأسفل"> الأسفل</label>
+                        <label><input type="radio" name="q13" value="الأعلى"> الأعلى</label>
+                        <label><input type="radio" name="q13" value="الأيمن"> الأيمن</label>
+                        <label><input type="radio" name="q13" value="الأيسر"> الأيسر</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="Auto Sum">
+                    <p class="star-icon">28. جمع الأرقام تلقائيًا في Excel باستخدام الأمر:</p>
+                    <div class="options">
+                        <label><input type="radio" name="q14" value="إدراج"> إدراج</label>
+                        <label><input type="radio" name="q14" value="تنسيق"> تنسيق</label>
+                        <label><input type="radio" name="q14" value="Auto Sum"> Auto Sum</label>
+                        <label><input type="radio" name="q14" value="تصميم"> تصميم</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="WordPress">
+                    <p class="star-icon">29. يمكن استخدام برنامج .............. في تصميم موقع إلكتروني:</p>
+                    <div class="options">
+                        <label><input type="radio" name="q15" value="الرسام"> الرسام</label>
+                        <label><input type="radio" name="q15" value="العروض التقديمية"> العروض التقديمية</label>
+                        <label><input type="radio" name="q15" value="Excel"> Excel</label>
+                        <label><input type="radio" name="q15" value="WordPress"> WordPress</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="Google">
+                    <p class="star-icon">30. من محركات البحث المتخصصة:</p>
+                    <div class="options">
+                        <label><input type="radio" name="q16" value="PowerPoint"> PowerPoint</label>
+                        <label><input type="radio" name="q16" value="Excel"> Excel</label>
+                        <label><input type="radio" name="q16" value="Word"> Word</label>
+                        <label><input type="radio" name="q16" value="Google"> Google</label>
+                    </div>
+                </div>
+            </div>
+            <button id="submit">تسليم الإجابات</button>
+            <div id="result"></div>
+            <div id="correction"></div>
+        </div>
+    </div>
+    <audio id="victorySound" src="https://www.soundjay.com/buttons/applause-01.mp3" preload="auto" muted></audio>
+    <audio id="triumphSound" src="https://www.soundjay.com/music/heroic-reception-01.mp3" preload="auto" muted></audio>
+    <script>
+        if (!Array.prototype.forEach) {
+            Array.prototype.forEach = function(callback) {
+                for (var i = 0; i < this.length; i++) {
+                    callback(this[i], i, this);
+                }
+            };
+        }
+        if (!Array.prototype.map) {
+            Array.prototype.map = function(callback) {
+                var result = [];
+                for (var i = 0; i < this.length; i++) {
+                    result.push(callback(this[i], i, this));
+                }
+                return result;
+            };
+        }
+        function addEvent(element, event, handler) {
+            if (element.addEventListener) {
+                element.addEventListener(event, handler, false);
+            } else if (element.attachEvent) {
+                element.attachEvent('on' + event, handler);
+            }
+        }
+        if (!document.getElementsByName) {
+            document.getElementById('browser-warning').style.display = 'block';
+        }
+        for (var i = 0; i < 20; i++) {
+            var star = document.createElement('div');
+            star.className = 'glow-bg';
+            star.style.left = Math.random() * 100 + 'vw';
+            star.style.top = Math.random() * 100 + 'vh';
+            star.style.animationDelay = Math.random() * 2 + 's';
+            star.style.transform = 'scale(' + (0.5 + Math.random() * 0.5) + ')';
+            document.body.appendChild(star);
+        }
+        var studentNameInput = document.getElementById('studentName');
+        var submit = document.getElementById('submit');
+        var result = document.getElementById('result');
+        var correction = document.getElementById('correction');
+        var victorySound = document.getElementById('victorySound');
+        var triumphSound = document.getElementById('triumphSound');
+        addEvent(submit, 'click', function() {
+            var name = studentNameInput.value.trim();
+            if (!name || name.length === 0) {
+                alert('من فضلك، أدخل اسمك أولاً!');
+                studentNameInput.focus();
+                return;
+            }
+            var questions = document.getElementsByClassName('question');
+            var score = 0;
+            var total = questions.length;
+            var wrongAnswers = [];
+            for (var i = 0; i < questions.length; i++) {
+                var question = questions[i];
+                var correctAnswer = question.getAttribute('data-answer');
+                var isTrueFalse = question.className.indexOf('true-false') !== -1;
+                var inputName = isTrueFalse ? 'tf' + (i + 1) : 'q' + (i - 13);
+                var inputs = document.getElementsByName(inputName);
+                var selectedInput = null;
+                for (var j = 0; j < inputs.length; j++) {
+                    if (inputs[j].checked) {
+                        selectedInput = inputs[j];
+                        break;
+                    }
+                }
+                var selectedValue = selectedInput ? selectedInput.value : null;
+                if (selectedValue === correctAnswer) {
+                    score++;
+                } else {
+                    var questionText = question.getElementsByTagName('p')[0].innerHTML.replace('🌟 ', '');
+                    wrongAnswers.push({
+                        question: questionText,
+                        selected: selectedValue || 'لم يتم اختيار إجابة',
+                        correct: correctAnswer
+                    });
+                }
+            }
+            result.style.display = 'block';
+            if (score === total) {
+                result.className = 'success rainbow-text';
+                result.innerHTML = '<span class="trophy">🏆</span> يا ' + name + '! أنت بطل العالم! 🌍 حصلت على 30/30! 🎉<br>مستقبلك مشرق يا نجم! 🚀<br><button class="try-again" onclick="resetQuiz()">حاول مرة أخرى</button>';
+                startCelebration(result, name);
+            } else {
+                result.className = 'fail';
+                result.innerHTML = 'حاول مرة أخرى يا ' + name + '! درجتك: ' + score + '/' + total + '<br><button class="try-again" onclick="resetQuiz()">حاول مرة أخرى</button>';
+                correction.style.display = 'block';
+                var correctionHtml = '<h3>تصحيح الأخطاء:</h3>';
+                for (var k = 0; k < wrongAnswers.length; k++) {
+                    var w = wrongAnswers[k];
+                    correctionHtml += '<p class="incorrect"><strong>السؤال:</strong> ' + w.question + '<br>' +
+                                     '<strong>إجابتك:</strong> ' + w.selected + '<br>' +
+                                     '<strong>الإجابة الصحيحة:</strong> ' + w.correct + '</p>';
+                }
+                correction.innerHTML = correctionHtml;
+            }
+        });
+        function startCelebration(resultElement, studentName) {
+            document.body.className = 'glow shake';
+            setTimeout(function() { document.body.className = ''; }, 8000);
+            var isSmallScreen = window.innerWidth < 600 || window.innerHeight < 400;
+            var confettiCount = isSmallScreen ? 50 : 100;
+            var balloonCount = isSmallScreen ? 5 : 10;
+            var sparkleCount = isSmallScreen ? 20 : 40;
+            var fireworkCount = isSmallScreen ? 10 : 20;
+            var emojiCount = isSmallScreen ? 20 : 40;
+            var glowStarCount = isSmallScreen ? 15 : 30;
+            for (var i = 0; i < confettiCount; i++) {
+                var confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                var shape = Math.random();
+                if (shape > 0.5) confetti.className += ' circle';
+                else confetti.className += ' heart';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.background = ['#f1c40f', '#e74c3c'][Math.floor(Math.random() * 2)];
+                confetti.style.animationDelay = Math.random() * 0.3 + 's';
+                document.body.appendChild(confetti);
+                setTimeout(function(c) { c.remove(); }, 6000, confetti);
+            }
+            for (var i = 0; i < balloonCount; i++) {
+                var balloon = document.createElement('div');
+                balloon.className = 'balloon';
+                balloon.style.left = (i * (100 / balloonCount)) + 'vw';
+                balloon.style.background = ['#e91e63', '#ffd700'][Math.floor(Math.random() * 2)];
+                balloon.style.animationDelay = (i * 0.5) + 's';
+                document.body.appendChild(balloon);
+                setTimeout(function(b) { b.remove(); }, 10000, balloon);
+            }
+            for (var i = 0; i < sparkleCount; i++) {
+                var sparkle = document.createElement('div');
+                sparkle.className = 'sparkle';
+                sparkle.style.left = (Math.random() * 80 + 10) + '%';
+                sparkle.style.top = (Math.random() * 80 + 10) + '%';
+                resultElement.appendChild(sparkle);
+                setTimeout(function(s) { s.remove(); }, 2000, sparkle);
+            }
+            for (var i = 0; i < fireworkCount; i++) {
+                var firework = document.createElement('div');
+                firework.className = 'firework';
+                if (Math.random() > 0.5) firework.className += ' star';
+                firework.style.left = i % 2 === 0 ? '20vw' : '80vw';
+                firework.style.top = '10vh';
+                firework.style.transform = 'translate(' + (Math.random() * 50 - 25) + 'px, ' + (Math.random() * 50 - 25) + 'px)';
+                firework.style.animationDelay = (i * 0.2) + 's';
+                document.body.appendChild(firework);
+                setTimeout(function(f) { f.remove(); }, 1500, firework);
+            }
+            for (var i = 0; i < emojiCount; i++) {
+                var emoji = document.createElement('div');
+                emoji.className = 'emoji-rain';
+                emoji.innerHTML = ['🎉', '✨'][Math.floor(Math.random() * 2)];
+                emoji.style.left = Math.random() * 100 + 'vw';
+                emoji.style.animationDelay = Math.random() * 0.3 + 's';
+                document.body.appendChild(emoji);
+                setTimeout(function(e) { e.remove(); }, 5000, emoji);
+            }
+            for (var i = 0; i < glowStarCount; i++) {
+                var glowStar = document.createElement('div');
+                glowStar.className = 'glow-star';
+                glowStar.style.left = Math.random() * 100 + 'vw';
+                glowStar.style.top = Math.random() * 100 + 'vh';
+                glowStar.style.animationDelay = Math.random() * 1.5 + 's';
+                document.body.appendChild(glowStar);
+                setTimeout(function(g) { g.remove(); }, 8000, glowStar);
+            }
+            var bannerTop = document.createElement('div');
+            bannerTop.className = 'banner top';
+            bannerTop.innerHTML = 'مبروك يا ' + studentName + '!';
+            document.body.appendChild(bannerTop);
+            setTimeout(function(b) { b.remove(); }, 8000, bannerTop);
+            var bannerBottom = document.createElement('div');
+            bannerBottom.className = 'banner bottom';
+            bannerBottom.innerHTML = 'أنت نجم اليوم!';
+            document.body.appendChild(bannerBottom);
+            setTimeout(function(b) { b.remove(); }, 8000, bannerBottom);
+            var ribbonTL = document.createElement('div');
+            ribbonTL.className = 'ribbon top-left';
+            document.body.appendChild(ribbonTL);
+            setTimeout(function(r) { r.remove(); }, 8000, ribbonTL);
+            var ribbonBR = document.createElement('div');
+            ribbonBR.className = 'ribbon bottom-right';
+            document.body.appendChild(ribbonBR);
+            setTimeout(function(r) { r.remove(); }, 8000, ribbonBR);
+            victorySound.muted = false;
+            victorySound.play().catch(function() {});
+            triumphSound.muted = false;
+            triumphSound.play().catch(function() {});
+        }
+        function resetQuiz() {
+            var inputs = document.getElementsByTagName('input');
+            for (var i = 0; i < inputs.length; i++) {
+                if (inputs[i].type === 'radio') {
+                    inputs[i].checked = false;
+                } else if (inputs[i].id === 'studentName') {
+                    inputs[i].value = '';
+                }
+            }
+            result.style.display = 'none';
+            correction.style.display = 'none';
+            result.className = '';
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>
