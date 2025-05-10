@@ -1,43 +1,4 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
@@ -498,6 +459,55 @@
                         <label><input type="radio" name="tf7" value="✘"> ✘</label>
                     </div>
                 </div>
+                <div class="question true-false" data-answer="✔">
+                    <p class="star-icon">8. تساعد التكنولوجيا الرقمية المسافرين على حجز تذاكر السفر عبر الإنترنت.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf8" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf8" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✔">
+                    <p class="star-icon">9. القرصنة هي تبادل محتوى بشكل غير قانوني بهدف مشاركته مع الآخرين أو بيعه.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf9" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf9" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✘">
+                    <p class="star-icon">10. كل مواقع التواصل الاجتماعي تتضمن معلومات موثوقة.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf10" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf10" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✘">
+                    <p class="star-icon">11. نستخدم أداة القص في شريط أدوات برنامج الرسام لتعبئة الألوان.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf11" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf11" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✘">
+                    <p class="star-icon">12. إذا أضفت محتوى قريبًا جدًا من الأطراف، فسيبدو الملصق جذابًا من الناحية البصرية.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf12" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf12" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✔">
+                    <p class="star-icon">13. يفضل كتابة الخطوات التي أدت إلى حل المشكلة؛ لكي نستعين بها لاحقًا.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf13" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf13" value="✘"> ✘</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="✔">
+                    <p class="star-icon">14. مربع أدوات برنامج الرسام يوفر كل الأدوات التي تحتاج إليها في رسمك.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf14" value="✔"> ✔</label>
+                        <label><input type="radio" name="tf14" value="✘"> ✘</label>
+                    </div>
+                </div>
             </div>
             <div class="section">
                 <h2>ثانيًا: اختر الإجابة الصحيحة مما يلي:</h2>
@@ -573,63 +583,8 @@
                         <label><input type="radio" name="q8" value="Mouse"> Mouse</label>
                     </div>
                 </div>
-            </div>
-            <div class="section">
-                <h2>أولًا: ضع علامة (✔) أمام العبارة الصحيحة، وعلامة (✘) أمام العبارة غير الصحيحة:</h2>
-                <div class="question true-false" data-answer="✔">
-                    <p class="star-icon">1. تساعد التكنولوجيا الرقمية المسافرين على حجز تذاكر السفر عبر الإنترنت.</p>
-                    <div class="true-false">
-                        <label><input type="radio" name="tf8" value="✔"> ✔</label>
-                        <label><input type="radio" name="tf8" value="✘"> ✘</label>
-                    </div>
-                </div>
-                <div class="question true-false" data-answer="✔">
-                    <p class="star-icon">2. القرصنة هي تبادل محتوى بشكل غير قانوني بهدف مشاركته مع الآخرين أو بيعه.</p>
-                    <div class="true-false">
-                        <label><input type="radio" name="tf9" value="✔"> ✔</label>
-                        <label><input type="radio" name="tf9" value="✘"> ✘</label>
-                    </div>
-                </div>
-                <div class="question true-false" data-answer="✘">
-                    <p class="star-icon">3. كل مواقع التواصل الاجتماعي تتضمن معلومات موثوقة.</p>
-                    <div class="true-false">
-                        <label><input type="radio" name="tf10" value="✔"> ✔</label>
-                        <label><input type="radio" name="tf10" value="✘"> ✘</label>
-                    </div>
-                </div>
-                <div class="question true-false" data-answer="✘">
-                    <p class="star-icon">4. نستخدم أداة القص في شريط أدوات برنامج الرسام لتعبئة الألوان.</p>
-                    <div class="true-false">
-                        <label><input type="radio" name="tf11" value="✔"> ✔</label>
-                        <label><input type="radio" name="tf11" value="✘"> ✘</label>
-                    </div>
-                </div>
-                <div class="question true-false" data-answer="✘">
-                    <p class="star-icon">5. إذا أضفت محتوى قريبًا جدًا من الأطراف، فسيبدو الملصق جذابًا من الناحية البصرية.</p>
-                    <div class="true-false">
-                        <label><input type="radio" name="tf12" value="✔"> ✔</label>
-                        <label><input type="radio" name="tf12" value="✘"> ✘</label>
-                    </div>
-                </div>
-                <div class="question true-false" data-answer="✔">
-                    <p class="star-icon">6. يفضل كتابة الخطوات التي أدت إلى حل المشكلة؛ لكي نستعين بها لاحقًا.</p>
-                    <div class="true-false">
-                        <label><input type="radio" name="tf13" value="✔"> ✔</label>
-                        <label><input type="radio" name="tf13" value="✘"> ✘</label>
-                    </div>
-                </div>
-                <div class="question true-false" data-answer="✔">
-                    <p class="star-icon">7. مربع أدوات برنامج الرسام يوفر كل الأدوات التي تحتاج إليها في رسمك.</p>
-                    <div class="true-false">
-                        <label><input type="radio" name="tf14" value="✔"> ✔</label>
-                        <label><input type="radio" name="tf14" value="✘"> ✘</label>
-                    </div>
-                </div>
-            </div>
-            <div class="section">
-                <h2>ثانيًا: اختر الإجابة الصحيحة مما يلي:</h2>
                 <div class="question" data-answer="التطبيقات">
-                    <p class="star-icon">1. تساعد التكنولوجيا الرقمية الأشخاص على سداد الفواتير، عن طريق استخدام:</p>
+                    <p class="star-icon">9. تساعد التكنولوجيا الرقمية الأشخاص على سداد الفواتير، عن طريق استخدام:</p>
                     <div class="options">
                         <label><input type="radio" name="q9" value="الماسح الضوئي"> الماسح الضوئي</label>
                         <label><input type="radio" name="q9" value="التطبيقات"> التطبيقات</label>
@@ -638,7 +593,7 @@
                     </div>
                 </div>
                 <div class="question" data-answer="Code.org">
-                    <p class="star-icon">2. يوجد العديد من المواقع الإلكترونية مثل … التي تساعدك على تعلم التشفير باستخدام لغات البرمجة المختلفة:</p>
+                    <p class="star-icon">10. يوجد العديد من المواقع الإلكترونية مثل … التي تساعدك على تعلم التشفير باستخدام لغات البرمجة المختلفة:</p>
                     <div class="options">
                         <label><input type="radio" name="q10" value="Word"> Word</label>
                         <label><input type="radio" name="q10" value="Excel"> Excel</label>
@@ -646,7 +601,7 @@
                     </div>
                 </div>
                 <div class="question" data-answer="مصمم الخرائط التفاعلية">
-                    <p class="star-icon">3. خاصية … توفر أدوات لرسم الخرائط عبر الإنترنت للتلاميذ والمعلمين:</p>
+                    <p class="star-icon">11. خاصية … توفر أدوات لرسم الخرائط عبر الإنترنت للتلاميذ والمعلمين:</p>
                     <div class="options">
                         <label><input type="radio" name="q11" value="برنامج Paint"> برنامج Paint</label>
                         <label><input type="radio" name="q11" value="برنامج Word"> برنامج Word</label>
@@ -655,7 +610,7 @@
                     </div>
                 </div>
                 <div class="question" data-answer="القرصنة">
-                    <p class="star-icon">4. تداول محتوى بشكل غير قانوني بهدف مشاركته أو بيعه يسمى:</p>
+                    <p class="star-icon">12. تداول محتوى بشكل غير قانوني بهدف مشاركته أو بيعه يسمى:</p>
                     <div class="options">
                         <label><input type="radio" name="q12" value="المصدر"> المصدر</label>
                         <label><input type="radio" name="q12" value="القرصنة"> القرصنة</label>
@@ -664,7 +619,7 @@
                     </div>
                 </div>
                 <div class="question" data-answer="الشريحة">
-                    <p class="star-icon">5. في برنامج العروض التقديمية، … هي صفحة عرض تحتوي على نصوصك وصورك:</p>
+                    <p class="star-icon">13. في برنامج العروض التقديمية، … هي صفحة عرض تحتوي على نصوصك وصورك:</p>
                     <div class="options">
                         <label><input type="radio" name="q13" value="الشريحة"> الشريحة</label>
                         <label><input type="radio" name="q13" value="العنوان"> العنوان</label>
@@ -673,7 +628,7 @@
                     </div>
                 </div>
                 <div class="question" data-answer="المصادر الموثوقة">
-                    <p class="star-icon">6. المقالات أو المعلومات التي كتبها الخبراء وتأكدوا من صحتها تسمى:</p>
+                    <p class="star-icon">14. المقالات أو المعلومات التي كتبها الخبراء وتأكدوا من صحتها تسمى:</p>
                     <div class="options">
                         <label><input type="radio" name="q14" value="المصادر الموثوقة"> المصادر الموثوقة</label>
                         <label><input type="radio" name="q14" value="الآراء"> الآراء</label>
@@ -682,7 +637,7 @@
                     </div>
                 </div>
                 <div class="question" data-answer="فلابي Vlaby">
-                    <p class="star-icon">7. من مصادر التعليم التي تساعدك على إجراء تجارب معملية في بيئة تفاعلية، منصة:</p>
+                    <p class="star-icon">15. من مصادر التعليم التي تساعدك على إجراء تجارب معملية في بيئة تفاعلية، منصة:</p>
                     <div class="options">
                         <label><input type="radio" name="q15" value="مصمم الخرائط"> مصمم الخرائط</label>
                         <label><input type="radio" name="q15" value="بنك المعرفة المصري"> بنك المعرفة المصري</label>
@@ -691,7 +646,7 @@
                     </div>
                 </div>
                 <div class="question" data-answer="الفرضية">
-                    <p class="star-icon">8. التخمين العلمي حول كيفية حدوث الأشياء يسمى:</p>
+                    <p class="star-icon">16. التخمين العلمي حول كيفية حدوث الأشياء يسمى:</p>
                     <div class="options">
                         <label><input type="radio" name="q16" value="المشكلة"> المشكلة</label>
                         <label><input type="radio" name="q16" value="الاكتشافات"> الاكتشافات</label>
@@ -764,7 +719,7 @@
                 var question = questions[i];
                 var correctAnswer = question.getAttribute('data-answer');
                 var isTrueFalse = question.className.indexOf('true-false') !== -1;
-                var inputName = isTrueFalse ? 'tf' + (i + 1) : 'q' + (i - 7);
+                var inputName = isTrueFalse ? 'tf' + (i + 1) : 'q' + (i - 13);
                 var inputs = document.getElementsByName(inputName);
                 var selectedInput = null;
                 for (var j = 0; j < inputs.length; j++) {
