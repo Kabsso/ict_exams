@@ -1,0 +1,601 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>امتحان الصف الثاني الإعدادي - تكنولوجيا المعلومات</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #ffecd2, #fcb69f);
+            direction: rtl;
+            text-align: right;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            overflow-x: hidden;
+            transition: background 0.5s;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            color: #e67e22;
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #d35400;
+            font-size: 1.8em;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .name-input {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .name-input input {
+            padding: 12px;
+            font-size: 1.3em;
+            border: 2px solid #3498db;
+            border-radius: 10px;
+            width: 70%;
+            max-width: 400px;
+            transition: border-color 0.3s;
+        }
+        .name-input input:focus {
+            border-color: #e67e22;
+            outline: none;
+        }
+        .question {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f0f9ff;
+            border-radius: 15px;
+            border: 2px solid #3498db;
+            animation: fadeIn 0.5s ease-in;
+            transition: transform 0.2s;
+        }
+        .question:hover {
+            transform: scale(1.02);
+        }
+        .question p {
+            font-size: 1.4em;
+            margin: 0 0 15px;
+            color: #2c3e50;
+        }
+        .options label, .true-false label {
+            display: block;
+            margin: 10px 0;
+            font-size: 1.2em;
+            cursor: pointer;
+            padding: 10px;
+            background: #ecf0f1;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+        .options label:hover, .true-false label:hover {
+            background: #dfe6e9;
+        }
+        .options input, .true-false input {
+            margin-left: 15px;
+            transform: scale(1.5);
+            accent-color: #e67e22;
+        }
+        button {
+            display: block;
+            margin: 30px auto;
+            padding: 12px 30px;
+            background: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.3em;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+        }
+        button:hover {
+            background: #2980b9;
+            transform: scale(1.05);
+        }
+        #result, #correction {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 15px;
+            display: none;
+            font-size: 1.2em;
+        }
+        #result.success {
+            background: #d4edda;
+            color: #155724;
+            text-align: center;
+            border: 2px solid #c3e6cb;
+            position: relative;
+        }
+        #result.fail {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        #correction {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeeba;
+        }
+        .confetti {
+            position: fixed;
+            width: 12px;
+            height: 12px;
+            background: #f1c40f;
+            animation: fall 5s linear;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .confetti.star {
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+        }
+        .confetti.heart {
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+            transform: scale(0.8);
+        }
+        @keyframes fall {
+            0% { transform: translateY(-100vh) translateX(0) rotate(0deg); opacity: 1; }
+            50% { transform: translateY(0vh) translateX(${Math.random() * 100 - 50}px) rotate(360deg); opacity: 0.8; }
+            100% { transform: translateY(100vh) translateX(${Math.random() * 100 - 50}px) rotate(720deg); opacity: 0; }
+        }
+        .balloon {
+            position: fixed;
+            width: 30px;
+            height: 40px;
+            background: #e91e63;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            animation: float 5s ease-in-out;
+            pointer-events: none;
+        }
+        @keyframes float {
+            0% { transform: translateY(100vh) translateX(0); opacity: 1; }
+            50% { transform: translateY(50vh) translateX(${Math.random() * 50 - 25}px); opacity: 0.9; }
+            100% { transform: translateY(-100vh) translateX(${Math.random() * 50 - 25}px); opacity: 0; }
+        }
+        .sparkle {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background: radial-gradient(circle, #ffd700 20%, transparent 70%);
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+            animation: sparkle 2s ease-in-out;
+            pointer-events: none;
+        }
+        @keyframes sparkle {
+            0% { transform: scale(0) rotate(0deg); opacity: 1; }
+            50% { transform: scale(1.2) rotate(180deg); opacity: 0.8; }
+            100% { transform: scale(0) rotate(360deg); opacity: 0; }
+        }
+        .firework {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            background: #ffd700;
+            border-radius: 50%;
+            animation: firework 2s ease-out;
+            pointer-events: none;
+        }
+        @keyframes firework {
+            0% { transform: translate(0, 0) scale(0); opacity: 1; }
+            100% { transform: translate(${Math.random() * 200 - 100}px, ${Math.random() * 200 - 100}px) scale(1); opacity: 0; }
+        }
+        .rainbow-text {
+            animation: rainbow 3s linear infinite;
+        }
+        @keyframes rainbow {
+            0% { color: #ff0000; }
+            16% { color: #ff9900; }
+            33% { color: #33cc33; }
+            50% { color: #00cccc; }
+            66% { color: #3333ff; }
+            83% { color: #cc00cc; }
+            100% { color: #ff0000; }
+        }
+        .shake-bounce {
+            animation: shake-bounce 0.8s ease-in-out;
+        }
+        @keyframes shake-bounce {
+            0%, 100% { transform: translateX(0) scale(1); }
+            20% { transform: translateX(-10px) scale(1.1); }
+            40% { transform: translateX(10px) scale(1.1); }
+            60% { transform: translateX(-5px) scale(1.05); }
+            80% { transform: translateX(5px) scale(1.05); }
+        }
+        .glow {
+            animation: glow 3s ease-in-out;
+        }
+        @keyframes glow {
+            0%, 100% { background: linear-gradient(135deg, #ffecd2, #fcb69f); }
+            50% { background: linear-gradient(135deg, #fff7e6, #ffcccb); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        #quiz {
+            display: none;
+        }
+        .try-again {
+            background: #e67e22;
+        }
+        .try-again:hover {
+            background: #d35400;
+        }
+        .star-icon::before {
+            content: '⭐ ';
+            font-size: 1.2em;
+        }
+        .correct::before {
+            content: '✅ ';
+        }
+        .incorrect::before {
+            content: '❌ ';
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            .question p {
+                font-size: 1.2em;
+            }
+            .options label, .true-false label {
+                font-size: 1em;
+            }
+            .name-input input {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>امتحان الصف الثاني الإعدادي - تكنولوجيا المعلومات</h1>
+        <div class="name-input">
+            <p>ادخل اسمك لتبدأ الامتحان:</p>
+            <input type="text" id="studentName" placeholder="اكتب اسمك هنا" aria-label="اسم الطالب">
+            <button id="startQuiz">ابدأ الامتحان</button>
+        </div>
+        <div id="quiz">
+            <div class="section">
+                <h2>السؤال الأول: تخير الإجابة الصحيحة مما يناسبها من بين الأقواس:</h2>
+                <div class="question" data-answer="if">
+                    <p class="star-icon">1. تستخدم الجمل الشرطية ............... لتحديد هل الطالب ناجح أم راسب.</p>
+                    <div class="options">
+                        <label><input type="radio" name="q1" value="if"> if</label>
+                        <label><input type="radio" name="q1" value="form"> form</label>
+                        <label><input type="radio" name="q1" value="password"> password</label>
+                        <label><input type="radio" name="q1" value="loop"> loop</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="الفاصلة المنقوطة ;">
+                    <p class="star-icon">2. يجب إنهاء كل جملة script بـ ...............</p>
+                    <div class="options">
+                        <label><input type="radio" name="q2" value="القوسين {}"> القوسين {}</label>
+                        <label><input type="radio" name="q2" value="الفاصلة المنقوطة ;"> الفاصلة المنقوطة ;</label>
+                        <label><input type="radio" name="q2" value="الشرطة السفلية _"> الشرطة السفلية _</label>
+                        <label><input type="radio" name="q2" value="القوسين ()"> القوسين ()</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="onclick">
+                    <p class="star-icon">3. تضاف الخاصية ............... لزر الأمر button لاستدعاء دالة (الحدث).</p>
+                    <div class="options">
+                        <label><input type="radio" name="q3" value="checkbox"> checkbox</label>
+                        <label><input type="radio" name="q3" value="onclick"> onclick</label>
+                        <label><input type="radio" name="q3" value="value"> value</label>
+                        <label><input type="radio" name="q3" value="action"> action</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="return">
+                    <p class="star-icon">4. أمر ............... يستخدم لإرجاع قيمة من دالة.</p>
+                    <div class="options">
+                        <label><input type="radio" name="q4" value="return"> return</label>
+                        <label><input type="radio" name="q4" value="alert"> alert</label>
+                        <label><input type="radio" name="q4" value="document.write"> document.write</label>
+                        <label><input type="radio" name="q4" value="console.log"> console.log</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="alert">
+                    <p class="star-icon">5. يستخدم الأمر ............... لإظهار رسالة في نافذة منبثقة.</p>
+                    <div class="options">
+                        <label><input type="radio" name="q5" value="document.write"> document.write</label>
+                        <label><input type="radio" name="q5" value="alert"> alert</label>
+                        <label><input type="radio" name="q5" value="console.log"> console.log</label>
+                        <label><input type="radio" name="q5" value="innerHTML"> innerHTML</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="action">
+                    <p class="star-icon">6. الخاصية ............... تحدد الصفحة التي يتم إرسال بيانات النموذج إليها.</p>
+                    <div class="options">
+                        <label><input type="radio" name="q6" value="name"> name</label>
+                        <label><input type="radio" name="q6" value="method"> method</label>
+                        <label><input type="radio" name="q6" value="action"> action</label>
+                        <label><input type="radio" name="q6" value="value"> value</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="isNaN">
+                    <p class="star-icon">7. للتحقق إذا كان المدخل رقمًا، نستخدم الدالة ...............</p>
+                    <div class="options">
+                        <label><input type="radio" name="q7" value="isNaN"> isNaN</label>
+                        <label><input type="radio" name="q7" value="parseInt"> parseInt</label>
+                        <label><input type="radio" name="q7" value="alert"> alert</label>
+                        <label><input type="radio" name="q7" value="if"> if</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="name">
+                    <p class="star-icon">8. تستخدم الخاصية ............... لتحديد اسم النموذج في HTML.</p>
+                    <div class="options">
+                        <label><input type="radio" name="q8" value="id"> id</label>
+                        <label><input type="radio" name="q8" value="name"> name</label>
+                        <label><input type="radio" name="q8" value="class"> class</label>
+                        <label><input type="radio" name="q8" value="value"> value</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="برامج التجسس">
+                    <p class="star-icon">9. يقصد بـ spyware ...............</p>
+                    <div class="options">
+                        <label><input type="radio" name="q9" value="برامج ضارة"> برامج ضارة</label>
+                        <label><input type="radio" name="q9" value="برامج التجسس"> برامج التجسس</label>
+                        <label><input type="radio" name="q9" value="جدار الحماية"> جدار الحماية</label>
+                        <label><input type="radio" name="q9" value="مدونة عبر الإنترنت"> مدونة عبر الإنترنت</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="function">
+                    <p class="star-icon">10. لإنشاء دالة في JavaScript، نستخدم الكلمة ...............</p>
+                    <div class="options">
+                        <label><input type="radio" name="q10" value="function"> function</label>
+                        <label><input type="radio" name="q10" value="script"> script</label>
+                        <label><input type="radio" name="q10" value="form"> form</label>
+                        <label><input type="radio" name="q10" value="event"> event</label>
+                    </div>
+                </div>
+            </div>
+            <div class="section">
+                <h2>السؤال الثاني: ضع علامة (√) أو (×) أمام العبارات الآتية:</h2>
+                <div class="question true-false" data-answer="√">
+                    <p class="star-icon">1. تستخدم الخاصية value لتحديد النص الذي يظهر على زر الأمر.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf1" value="√"> √</label>
+                        <label><input type="radio" name="tf1" value="×"> ×</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="√">
+                    <p class="star-icon">2. الجملة form1.txt1.value != form1.txt2.value تُستخدم لمطابقة كلمتي مرور.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf2" value="√"> √</label>
+                        <label><input type="radio" name="tf2" value="×"> ×</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="×">
+                    <p class="star-icon">3. إذا كان x = 20، فإن الشرط 30 < x يعطي true.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf3" value="√"> √</label>
+                        <label><input type="radio" name="tf3" value="×"> ×</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="×">
+                    <p class="star-icon">4. الخاصية action تُستخدم لمسح بيانات النموذج.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf4" value="√"> √</label>
+                        <label><input type="radio" name="tf4" value="×"> ×</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="√">
+                    <p class="star-icon">5. الأمر return يُستخدم لإرجاع قيمة من دالة.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf5" value="√"> √</label>
+                        <label><input type="radio" name="tf5" value="×"> ×</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="×">
+                    <p class="star-icon">6. لغة HTML وحدها كافية للتحقق من صحة بيانات النموذج.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf6" value="√"> √</label>
+                        <label><input type="radio" name="tf6" value="×"> ×</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="×">
+                    <p class="star-icon">7. الخاصية onclick تُستخدم لكتابة نص يظهر على الزر.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf7" value="√"> √</label>
+                        <label><input type="radio" name="tf7" value="×"> ×</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="√">
+                    <p class="star-icon">8. يجب إعطاء اسم للنموذج وصندوق النص للوصول إلى محتواه في JavaScript.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf8" value="√"> √</label>
+                        <label><input type="radio" name="tf8" value="×"> ×</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="×">
+                    <p class="star-icon">9. الأمر document.write يُستخدم لإظهار نص في وحدة التحكم.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf9" value="√"> √</label>
+                        <label><input type="radio" name="tf9" value="×"> ×</label>
+                    </div>
+                </div>
+                <div class="question true-false" data-answer="√">
+                    <p class="star-icon">10. إذا كان x = 50، فإن الشرط x > 30 يعطي true.</p>
+                    <div class="true-false">
+                        <label><input type="radio" name="tf10" value="√"> √</label>
+                        <label><input type="radio" name="tf10" value="×"> ×</label>
+                    </div>
+                </div>
+            </div>
+            <button id="submit">تسليم الإجابات</button>
+            <div id="result"></div>
+            <div id="correction"></div>
+        </div>
+    </div>
+    <script>
+        const startQuiz = document.getElementById('startQuiz');
+        const quiz = document.getElementById('quiz');
+        const studentNameInput = document.getElementById('studentName');
+        const submit = document.getElementById('submit');
+        const result = document.getElementById('result');
+        const correction = document.getElementById('correction');
+
+        startQuiz.addEventListener('click', () => {
+            const name = studentNameInput.value.trim();
+            if (name) {
+                document.querySelector('.name-input').style.display = 'none';
+                quiz.style.display = 'block';
+            } else {
+                alert('من فضلك، أدخل اسمك أولاً!');
+            }
+        });
+
+        submit.addEventListener('click', () => {
+            const name = studentNameInput.value.trim();
+            const questions = document.querySelectorAll('.question');
+            let score = 0;
+            let total = questions.length;
+            let wrongAnswers = [];
+
+            questions.forEach((question, index) => {
+                const correctAnswer = question.getAttribute('data-answer');
+                const isTrueFalse = question.classList.contains('true-false');
+                const inputName = isTrueFalse ? `tf${index - 9}` : `q${index + 1}`;
+                const selectedInput = document.querySelector(`input[name="${inputName}"]:checked`);
+                const selectedValue = selectedInput ? selectedInput.value : null;
+
+                if (selectedValue === correctAnswer) {
+                    score++;
+                } else {
+                    wrongAnswers.push({
+                        question: question.querySelector('p').textContent,
+                        selected: selectedValue || 'لم يتم اختيار إجابة',
+                        correct: correctAnswer
+                    });
+                }
+            });
+
+            result.style.display = 'block';
+            if (score === total) {
+                result.classList.add('success', 'shake-bounce', 'rainbow-text');
+                result.innerHTML = `مبروك يا ${name}! 🎉 حصلت على الدرجة الكاملة: ${score}/${total}<br><button class="try-again" onclick="resetQuiz()">حاول مرة أخرى</button>`;
+                startCelebration(result);
+            } else {
+                result.classList.remove('success', 'shake-bounce', 'rainbow-text');
+                result.classList.add('fail');
+                result.innerHTML = `حاول مرة أخرى يا ${name}! درجتك: ${score}/${total}<br><button class="try-again" onclick="resetQuiz()">حاول مرة أخرى</button>`;
+                correction.style.display = 'block';
+                correction.innerHTML = '<h3>تصحيح الأخطاء:</h3>' + wrongAnswers.map(w => `
+                    <p class="incorrect"><strong>السؤال:</strong> ${w.question}<br>
+                    <strong>إجابتك:</strong> ${w.selected}<br>
+                    <strong>الإجابة الصحيحة:</strong> ${w.correct}</p>
+                `).join('');
+            }
+        });
+
+        function startCelebration(resultElement) {
+            document.body.classList.add('glow');
+            setTimeout(() => document.body.classList.remove('glow'), 3000);
+
+            for (let i = 0; i < 300; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                const shape = Math.random();
+                if (shape > 0.66) confetti.classList.add('star');
+                else if (shape > 0.33) confetti.classList.add('heart');
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.background = ['#f1c40f', '#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#e91e63', '#ff9800', '#4caf50'][Math.floor(Math.random() * 8)];
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 5000);
+            }
+
+            for (let i = 0; i < 10; i++) {
+                const balloon = document.createElement('div');
+                balloon.classList.add('balloon');
+                balloon.style.left = Math.random() * 100 + 'vw';
+                balloon.style.background = ['#e91e63', '#2196f3', '#ffeb3b', '#4caf50', '#f44336'][Math.floor(Math.random() * 5)];
+                balloon.style.width = `${20 + Math.random() * 20}px`;
+                balloon.style.height = `${30 + Math.random() * 20}px`;
+                document.body.appendChild(balloon);
+                setTimeout(() => balloon.remove(), 5000);
+            }
+
+            for (let i = 0; i < 20; i++) {
+                const sparkle = document.createElement('div');
+                sparkle.classList.add('sparkle');
+                sparkle.style.left = `${Math.random() * 100}%`;
+                sparkle.style.top = `${Math.random() * 100}%`;
+                resultElement.appendChild(sparkle);
+                setTimeout(() => sparkle.remove(), 2000);
+            }
+
+            for (let i = 0; i < 20; i++) {
+                const firework = document.createElement('div');
+                firework.classList.add('firework');
+                firework.style.left = `50vw`;
+                firework.style.top = `10vh`;
+                firework.style.background = ['#ffd700', '#ff4081', '#00e676', '#3f51b5'][Math.floor(Math.random() * 4)];
+                document.body.appendChild(firework);
+                setTimeout(() => firework.remove(), 2000);
+            }
+        }
+
+        function resetQuiz() {
+            document.querySelectorAll('input[type="radio"]').forEach(input => input.checked = false);
+            result.style.display = 'none';
+            correction.style.display = 'none';
+            result.classList.remove('success', 'fail', 'shake-bounce', 'rainbow-text');
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>
