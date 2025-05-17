@@ -1,0 +1,717 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>امتحان مهارات - الصف السادس الابتدائي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&family=Roboto:wght@300;500&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Tajawal', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            direction: rtl;
+            text-align: right;
+            color: #fff;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            z-index: 10;
+            transition: transform 0.3s ease;
+        }
+        .container:hover {
+            transform: translateY(-5px);
+        }
+        h1 {
+            color: #ffcc00;
+            text-align: center;
+            font-size: 3em;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            animation: fadeInDown 1s ease;
+        }
+        h2 {
+            color: #ff6b6b;
+            font-size: 2.2em;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: 500;
+        }
+        .name-page, .quiz-page {
+            display: none;
+        }
+        .name-page.active, .quiz-page.active {
+            display: block;
+        }
+        .name-input {
+            text-align: center;
+            margin: 40px 0;
+        }
+        .name-input p {
+            font-size: 1.6em;
+            color: #fff;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+        .name-input input {
+            padding: 18px 25px;
+            font-size: 1.5em;
+            border: none;
+            border-radius: 50px;
+            width: 70%;
+            max-width: 450px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border: 2px solid #ffcc00;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .name-input input:focus {
+            border-color: #ff6b6b;
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.5);
+        }
+        .question {
+            margin: 25px 0;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border-left: 5px solid #ffcc00;
+            transition: all 0.3s ease;
+        }
+        .question:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(10px);
+        }
+        .question p {
+            font-size: 1.6em;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+        .options label {
+            display: block;
+            margin: 12px 0;
+            font-size: 1.4em;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .options label:hover {
+            background: rgba(255, 204, 0, 0.2);
+            transform: scale(1.03);
+        }
+        .options input {
+            margin-left: 15px;
+            transform: scale(1.5);
+            accent-color: #ffcc00;
+        }
+        button#submit {
+            display: block;
+            margin: 40px auto;
+            padding: 18px 40px;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.6em;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.4s ease;
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+        button#submit:hover {
+            background: linear-gradient(45deg, #ff8e53, #ff6b6b);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 142, 83, 0.6);
+        }
+        button#submit:disabled {
+            background: rgba(255, 255, 255, 0.2);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        button#tryAgain {
+            display: inline-block;
+            margin: 20px auto 0;
+            padding: 15px 35px;
+            background: linear-gradient(45deg, #4ecdc4, #45b7cd);
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.4em;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.4s ease;
+            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
+        }
+        button#tryAgain:hover {
+            background: linear-gradient(45deg, #45b7cd, #4ecdc4);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(69, 183, 205, 0.6);
+        }
+        #result, #correction {
+            margin-top: 40px;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+            font-size: 1.5em;
+        }
+        #result.success {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+            border: 2px solid #4caf50;
+            animation: bounceIn 1s ease;
+        }
+        #result.fail {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 2px solid #f44336;
+        }
+        #correction {
+            background: rgba(255, 235, 59, 0.2);
+            color: #ffca28;
+            border: 2px solid #ffca28;
+            margin-top: 20px;
+        }
+        #correction h3 {
+            font-size: 1.7em;
+            margin-bottom: 15px;
+        }
+        #correction p {
+            margin: 10px 0;
+            font-size: 1.3em;
+        }
+        .celebration-effect {
+            position: fixed;
+            pointer-events: none;
+            z-index: 20;
+        }
+        .confetti {
+            width: 12px;
+            height: 12px;
+            background: #ffcc00;
+            opacity: 0.9;
+            animation: confettiFall 5s linear forwards;
+        }
+        .confetti.circle { border-radius: 50%; }
+        .confetti.star {
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+            background: #ff6b6b;
+        }
+        @keyframes confettiFall {
+            0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+            50% { transform: translateY(50vh) rotate(180deg); }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+        .firework {
+            width: 15px;
+            height: 15px;
+            background: radial-gradient(circle, #ff8e53 30%, transparent 70%);
+            border-radius: 50%;
+            animation: fireworkExplode 2s ease-out forwards;
+        }
+        @keyframes fireworkExplode {
+            0% { transform: scale(0); opacity: 1; }
+            50% { transform: scale(1.5); }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        .sparkle {
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #fff 20%, transparent 70%);
+            border-radius: 50%;
+            animation: sparklePulse 1.5s infinite;
+        }
+        @keyframes sparklePulse {
+            0%, 100% { transform: scale(0.8); opacity: 0.7; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+        .banner {
+            position: fixed;
+            width: 350px;
+            height: 70px;
+            background: linear-gradient(45deg, #4ecdc4, #ff6b6b);
+            color: #fff;
+            font-size: 2em;
+            text-align: center;
+            line-height: 70px;
+            border-radius: 35px;
+            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.5);
+            animation: slideBanner 6s infinite;
+            z-index: 25;
+        }
+        @keyframes slideBanner {
+            0% { top: -70px; }
+            20%, 80% { top: 20px; }
+            100% { top: -70px; }
+        }
+        .trophy {
+            font-size: 4em;
+            animation: bounce 1.5s infinite;
+            text-shadow: 0 0 20px #ffcc00, 0 0 30px #ffcc00;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        .rainbow-text {
+            animation: rainbow 4s linear infinite;
+        }
+        @keyframes rainbow {
+            0% { color: #ff0000; }
+            16% { color: #ff9900; }
+            33% { color: #33cc33; }
+            50% { color: #00cccc; }
+            66% { color: #3333ff; }
+            83% { color: #cc00cc; }
+            100% { color: #ff0000; }
+        }
+        @media (max-width: 600px) {
+            .container { margin: 20px; padding: 20px; }
+            h1 { font-size: 2.2em; }
+            h2 { font-size: 1.8em; }
+            .name-input input { width: 90%; font-size: 1.2em; padding: 12px; }
+            .question p { font-size: 1.3em; }
+            .options label { font-size: 1.1em; padding: 10px; }
+            button#submit, button#tryAgain { font-size: 1.3em; padding: 12px 30px; }
+            .banner { width: 250px; font-size: 1.5em; height: 50px; line-height: 50px; }
+            .trophy { font-size: 3em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="name-page" class="name-page active">
+            <h1 class="animate__animated animate__fadeInDown">🌟 امتحان المهارات 🌟</h1>
+            <div class="name-input">
+                <p>أدخل اسمك لتبدأ المغامرة:</p>
+                <input type="text" id="studentName" placeholder="اكتب اسمك هنا" aria-label="اسم الطالب" onkeypress="if(event.key === 'Enter') startQuiz()">
+            </div>
+        </div>
+        <div id="quiz-page" class="quiz-page">
+            <h1 class="animate__animated animate__fadeInDown">🌟 امتحان مهارات - الصف السادس 🌟</h1>
+            <div id="quiz">
+                <h2>اختر الإجابة الصحيحة مما بين القوسين:</h2>
+                <div class="question" data-answer="عالية">
+                    <p>1. في أثناء صناعة المربى تكون درجة الحرارة المستخدمة .................</p>
+                    <div class="options">
+                        <label><input type="radio" name="q1" value="عالية"> عالية</label>
+                        <label><input type="radio" name="q1" value="هادئة"> هادئة</label>
+                        <label><input type="radio" name="q1" value="ضعيفة"> ضعيفة</label>
+                        <label><input type="radio" name="q1" value="خافتة"> خافتة</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="الغازية">
+                    <p>2. استبدال المشروبات الصحية بالمشروبات .................. يؤدي إلى سوء التغذية.</p>
+                    <div class="options">
+                        <label><input type="radio" name="q2" value="المعدنية"> المعدنية</label>
+                        <label><input type="radio" name="q2" value="الغازية"> الغازية</label>
+                        <label><input type="radio" name="q2" value="المالحة"> المالحة</label>
+                        <label><input type="radio" name="q2" value="الجوفية"> الجوفية</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="العمل التطوعي">
+                    <p>3. تتحقق المواطنة المسؤولة في خدمة المجتمع عبر .................</p>
+                    <div class="options">
+                        <label><input type="radio" name="q3" value="زيادة أماكن العمل"> زيادة أماكن العمل</label>
+                        <label><input type="radio" name="q3" value="الوظائف المؤقتة"> الوظائف المؤقتة</label>
+                        <label><input type="radio" name="q3" value="العمل التطوعي"> العمل التطوعي</label>
+                        <label><input type="radio" name="q3" value="ممارسة الألعاب الإلكترونية"> ممارسة الألعاب الإلكترونية</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="الغراء">
+                    <p>4. يتم تجميع أجزاء الفانوس الخشبية باستخدام .................</p>
+                    <div class="options">
+                        <label><input type="radio" name="q4" value="الطلاء"> الطلاء</label>
+                        <label><input type="radio" name="q4" value="الغراء"> الغراء</label>
+                        <label><input type="radio" name="q4" value="الغرز"> الغرز</label>
+                        <label><input type="radio" name="q4" value="الورق"> الورق</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="الغبار">
+                    <p>5. عند الحفر يرتدي السباك القناع؛ للحماية من .................</p>
+                    <div class="options">
+                        <label><input type="radio" name="q5" value="الحروق"> الحروق</label>
+                        <label><input type="radio" name="q5" value="الصدمات"> الصدمات</label>
+                        <label><input type="radio" name="q5" value="العرق"> العرق</label>
+                        <label><input type="radio" name="q5" value="الغبار"> الغبار</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="السكر">
+                    <p>6. لإمداد الأزهار بالطاقة يضاف .................. في ماء الزهرية.</p>
+                    <div class="options">
+                        <label><input type="radio" name="q6" value="الملح"> الملح</label>
+                        <label><input type="radio" name="q6" value="التوابل"> التوابل</label>
+                        <label><input type="radio" name="q6" value="الشاي"> الشاي</label>
+                        <label><input type="radio" name="q6" value="السكر"> السكر</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="حمض الفوسفوريك">
+                    <p>7. يعوق .................. امتصاص الجسم للكالسيوم.</p>
+                    <div class="options">
+                        <label><input type="radio" name="q7" value="السكر"> السكر</label>
+                        <label><input type="radio" name="q7" value="التوابل"> التوابل</label>
+                        <label><input type="radio" name="q7" value="حمض الفوسفوريك"> حمض الفوسفوريك</label>
+                        <label><input type="radio" name="q7" value="البروتين"> البروتين</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="إعادة التدوير">
+                    <p>8. لحماية البيئة يجب الاهتمام بـ .................</p>
+                    <div class="options">
+                        <label><input type="radio" name="q8" value="رش المبيدات"> رش المبيدات</label>
+                        <label><input type="radio" name="q8" value="استخراج البترول"> استخراج البترول</label>
+                        <label><input type="radio" name="q8" value="حرق المخلفات"> حرق المخلفات</label>
+                        <label><input type="radio" name="q8" value="إعادة التدوير"> إعادة التدوير</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="الهضمي">
+                    <p>9. البكتيريا المستخدمة في صناعة الزبادي تفيد الجهاز .................</p>
+                    <div class="options">
+                        <label><input type="radio" name="q9" value="العصبي"> العصبي</label>
+                        <label><input type="radio" name="q9" value="الدوري"> الدوري</label>
+                        <label><input type="radio" name="q9" value="التنفسي"> التنفسي</label>
+                        <label><input type="radio" name="q9" value="الهضمي"> الهضمي</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="القلي">
+                    <p>10. للحفاظ على الصحة نفضل تجنب إعداد الطعام بطريقة .................</p>
+                    <div class="options">
+                        <label><input type="radio" name="q10" value="الشوي"> الشوي</label>
+                        <label><input type="radio" name="q10" value="البخار"> البخار</label>
+                        <label><input type="radio" name="q10" value="القلي"> القلي</label>
+                        <label><input type="radio" name="q10" value="السلق"> السلق</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="كريم الحروق">
+                    <p>11. يتم وضع .................. على مكان الإصابة بالحروق الخفيفة.</p>
+                    <div class="options">
+                        <label><input type="radio" name="q11" value="الليمون"> الليمون</label>
+                        <label><input type="radio" name="q11" value="كريم الحروق"> كريم الحروق</label>
+                        <label><input type="radio" name="q11" value="معجون الأسنان"> معجون الأسنان</label>
+                        <label><input type="radio" name="q11" value="العسل"> العسل</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="الحروق">
+                    <p>12. اتباع احتياطات السلامة يحمي السباك من .................</p>
+                    <div class="options">
+                        <label><input type="radio" name="q12" value="الإرهاق"> الإرهاق</label>
+                        <label><input type="radio" name="q12" value="الضوضاء"> الضوضاء</label>
+                        <label><input type="radio" name="q12" value="التلوث"> التلوث</label>
+                        <label><input type="radio" name="q12" value="الحروق"> الحروق</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="شهر رمضان">
+                    <p>13. استخدم الفانوس لأول مرة في مصر للاحتفال بـ .................</p>
+                    <div class="options">
+                        <label><input type="radio" name="q13" value="شهر رمضان"> شهر رمضان</label>
+                        <label><input type="radio" name="q13" value="عيد العمال"> عيد العمال</label>
+                        <label><input type="radio" name="q13" value="عيد الفطر"> عيد الفطر</label>
+                        <label><input type="radio" name="q13" value="عيد الأضحى"> عيد الأضحى</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="ودية">
+                    <p>14. يجب الترحيب بالزوار بطريقة .................. لنجاح المعرض.</p>
+                    <div class="options">
+                        <label><input type="radio" name="q14" value="ودية"> ودية</label>
+                        <label><input type="radio" name="q14" value="عدائية"> عدائية</label>
+                        <label><input type="radio" name="q14" value="عنيفة"> عنيفة</label>
+                        <label><input type="radio" name="q14" value="ساخرة"> ساخرة</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="إنعاش قلبي">
+                    <p>15. يجب عمل .................. إذا وجد المصاب صعوبة في التنفس.</p>
+                    <div class="options">
+                        <label><input type="radio" name="q15" value="إنعاش قلبي"> إنعاش قلبي</label>
+                        <label><input type="radio" name="q15" value="كمادات"> كمادات</label>
+                        <label><input type="radio" name="q15" value="علاج منزلي"> علاج منزلي</label>
+                        <label><input type="radio" name="q15" value="جبيرة"> جبيرة</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="الملوخية">
+                    <p>16. إحدى الأكلات التقليدية المصرية الصحية هي .................</p>
+                    <div class="options">
+                        <label><input type="radio" name="q16" value="الملوخية"> الملوخية</label>
+                        <label><input type="radio" name="q16" value="رقائق الذرة"> رقائق الذرة</label>
+                        <label><input type="radio" name="q16" value="البرجر المقلي"> البرجر المقلي</label>
+                        <label><input type="radio" name="q16" value="الدجاج المقلي"> الدجاج المقلي</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="التحضين">
+                    <p>17. يحصل اللبن الزبادي على قوامه السميك بسبب عملية .................</p>
+                    <div class="options">
+                        <label><input type="radio" name="q17" value="التسخين"> التسخين</label>
+                        <label><input type="radio" name="q17" value="التبريد"> التبريد</label>
+                        <label><input type="radio" name="q17" value="الحفظ"> الحفظ</label>
+                        <label><input type="radio" name="q17" value="التحضين"> التحضين</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="الأدوية">
+                    <p>18. تحتوي حقيبة الإسعافات الأولية على .................</p>
+                    <div class="options">
+                        <label><input type="radio" name="q18" value="الأدوية"> الأدوية</label>
+                        <label><input type="radio" name="q18" value="المياه"> المياه</label>
+                        <label><input type="radio" name="q18" value="الطعام"> الطعام</label>
+                        <label><input type="radio" name="q18" value="المتجمدات"> المتجمدات</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="الرعاية">
+                    <p>19. يحرص الممرضون على تقديم .................. للأشخاص الذين يحتاجون إليها.</p>
+                    <div class="options">
+                        <label><input type="radio" name="q19" value="النقود"> النقود</label>
+                        <label><input type="radio" name="q19" value="الرعاية"> الرعاية</label>
+                        <label><input type="radio" name="q19" value="التدريب"> التدريب</label>
+                        <label><input type="radio" name="q19" value="الألعاب"> الألعاب</label>
+                    </div>
+                </div>
+                <div class="question" data-answer="الانزلاق">
+                    <p>20. يجب ترتيب أماكن العمل وارتداء أحذية السلامة للحماية من .................</p>
+                    <div class="options">
+                        <label><input type="radio" name="q20" value="الحروق"> الحروق</label>
+                        <label><input type="radio" name="q20" value="الأبخرة"> الأبخرة</label>
+                        <label><input type="radio" name="q20" value="الجروح"> الجروح</label>
+                        <label><input type="radio" name="q20" value="الانزلاق"> الانزلاق</label>
+                    </div>
+                </div>
+                <button id="submit" disabled>تسليم الإجابات</button>
+                <div id="result"></div>
+                <div id="correction"></div>
+            </div>
+        </div>
+    </div>
+    <audio id="victorySound" src="https://www.soundjay.com/buttons/applause-01.mp3" preload="auto" muted></audio>
+    <audio id="triumphSound" src="https://www.soundjay.com/music/heroic-reception-01.mp3" preload="auto" muted></audio>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.js"></script>
+    <script>
+        function addEvent(element, event, handler) {
+            if (element.addEventListener) element.addEventListener(event, handler, false);
+            else if (element.attachEvent) element.attachEvent('on' + event, handler);
+        }
+        for (let i = 0; i < 30; i++) {
+            const star = document.createElement('div');
+            star.className = 'glow-bg';
+            star.style.left = Math.random() * 100 + 'vw';
+            star.style.top = Math.random() * 100 + 'vh';
+            star.style.animationDelay = Math.random() * 3 + 's';
+            star.style.transform = `scale(${0.3 + Math.random() * 0.7})`;
+            document.body.appendChild(star);
+        }
+        const namePage = document.getElementById('name-page');
+        const quizPage = document.getElementById('quiz-page');
+        const studentNameInput = document.getElementById('studentName');
+        const submit = document.getElementById('submit');
+        const result = document.getElementById('result');
+        const correction = document.getElementById('correction');
+        const victorySound = document.getElementById('victorySound');
+        const triumphSound = document.getElementById('triumphSound');
+        let studentName = '';
+        function startQuiz() {
+            studentName = studentNameInput.value.trim();
+            if (!studentName) {
+                alert('من فضلك، أدخل اسمك أولاً!');
+                studentNameInput.focus();
+                return;
+            }
+            namePage.classList.remove('active');
+            quizPage.classList.add('active');
+            window.scrollTo(0, 0);
+        }
+        addEvent(studentNameInput, 'keypress', (e) => {
+            if (e.key === 'Enter') startQuiz();
+        });
+        function checkAllAnswered() {
+            const questions = document.getElementsByClassName('question');
+            let allAnswered = true;
+            for (let i = 0; i < questions.length; i++) {
+                const inputName = 'q' + (i + 1);
+                const inputs = document.getElementsByName(inputName);
+                let answered = false;
+                for (let j = 0; j < inputs.length; j++) {
+                    if (inputs[j].checked) {
+                        answered = true;
+                        break;
+                    }
+                }
+                if (!answered) allAnswered = false;
+            }
+            submit.disabled = !allAnswered;
+            return allAnswered;
+        }
+        addEvent(document, 'change', checkAllAnswered);
+        addEvent(submit, 'click', () => {
+            if (!checkAllAnswered()) {
+                alert('يرجى الإجابة على جميع الأسئلة أولاً!');
+                return;
+            }
+            const questions = document.getElementsByClassName('question');
+            let score = 0, total = questions.length, wrongAnswers = [];
+            for (let i = 0; i < total; i++) {
+                const question = questions[i];
+                const correctAnswer = question.getAttribute('data-answer');
+                const inputName = 'q' + (i + 1);
+                const inputs = document.getElementsByName(inputName);
+                let selectedValue = null;
+                for (let j = 0; j < inputs.length; j++) {
+                    if (inputs[j].checked) {
+                        selectedValue = inputs[j].value;
+                        break;
+                    }
+                }
+                if (selectedValue === correctAnswer) score++;
+                else wrongAnswers.push({
+                    question: question.getElementsByTagName('p')[0].innerHTML,
+                    selected: selectedValue || 'لم يتم اختيار إجابة',
+                    correct: correctAnswer
+                });
+            }
+            result.style.display = 'block';
+            if (score === total) {
+                result.className = 'success rainbow-text animate__animated animate__zoomIn';
+                result.innerHTML = `
+                    <span class="trophy">🏆</span>
+                    <h2 class="rainbow-text">مبروك يا ${studentName}! أنت بطل خارق!</h2>
+                    <p>حصلت على 20/20! 🌟</p>
+                    <p>أنت فخر المدرسة! 🚀 مستقبلك ساطع كالنجوم! 🌌</p>
+                    <button id="tryAgain">ابدأ مغامرة جديدة</button>
+                `;
+                startCelebration();
+            } else {
+                result.className = 'fail animate__animated animate__fadeIn';
+                result.innerHTML = `
+                    <h2>حاول مجددًا يا ${studentName}!</h2>
+                    <p>درجتك: ${score}/20</p>
+                    <button id="tryAgain">ابدأ مغامرة جديدة</button>
+                `;
+                correction.style.display = 'block';
+                let correctionHtml = '<h3>تصحيح الأخطاء:</h3>';
+                wrongAnswers.forEach(w => {
+                    correctionHtml += `<p><strong>السؤال:</strong> ${w.question}<br><strong>إجابتك:</strong> ${w.selected}<br><strong>الصحيح:</strong> ${w.correct}</p>`;
+                });
+                correction.innerHTML = correctionHtml;
+            }
+            const tryAgainButton = document.getElementById('tryAgain');
+            addEvent(tryAgainButton, 'click', resetQuiz);
+        });
+        function startCelebration() {
+            const isSmallScreen = window.innerWidth < 600;
+            const confettiCount = isSmallScreen ? 150 : 300;
+            const fireworkCount = isSmallScreen ? 30 : 60;
+            const sparkleCount = isSmallScreen ? 40 : 80;
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti celebration-effect';
+                if (Math.random() > 0.7) confetti.className += ' star';
+                else confetti.className += ' circle';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.background = ['#ffcc00', '#ff6b6b', '#4ecdc4'][Math.floor(Math.random() * 3)];
+                confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                confetti.style.animationDuration = Math.random() * 3 + 3 + 's';
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 6000);
+            }
+            for (let i = 0; i < fireworkCount; i++) {
+                const firework = document.createElement('div');
+                firework.className = 'firework celebration-effect';
+                firework.style.left = Math.random() * 100 + 'vw';
+                firework.style.top = Math.random() * 50 + 'vh';
+                firework.style.animationDelay = (i * 0.3) + 's';
+                document.body.appendChild(firework);
+                setTimeout(() => firework.remove(), 2000);
+            }
+            for (let i = 0; i < sparkleCount; i++) {
+                const sparkle = document.createElement('div');
+                sparkle.className = 'sparkle celebration-effect';
+                sparkle.style.left = Math.random() * 100 + 'vw';
+                sparkle.style.top = Math.random() * 100 + 'vh';
+                sparkle.style.animationDelay = Math.random() * 1 + 's';
+                document.body.appendChild(sparkle);
+                setTimeout(() => sparkle.remove(), 3000);
+            }
+            const banner = document.createElement('div');
+            banner.className = 'banner celebration-effect';
+            banner.innerHTML = `🎉 مبروك يا ${studentName} - بطل العصر! 🎉`;
+            document.body.appendChild(banner);
+            setTimeout(() => banner.remove(), 6000);
+            victorySound.muted = false;
+            victorySound.play().catch(() => {});
+            triumphSound.muted = false;
+            triumphSound.play().catch(() => {});
+        }
+        function resetQuiz() {
+            const inputs = document.getElementsByTagName('input');
+            for (let i = 0; i < inputs.length; i++) {
+                if (inputs[i].type === 'radio') inputs[i].checked = false;
+                else if (inputs[i].id === 'studentName') inputs[i].value = '';
+            }
+            result.style.display = 'none';
+            correction.style.display = 'none';
+            result.className = '';
+            namePage.classList.add('active');
+            quizPage.classList.remove('active');
+            submit.disabled = true;
+            document.querySelectorAll('.celebration-effect').forEach(e => e.remove());
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>

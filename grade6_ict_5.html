@@ -1,0 +1,686 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نموذج امتحان مادة الحاسب الآلي</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: linear-gradient(135deg, #e0e7ff 0%, #f0f4f8 100%);
+      color: #333;
+      line-height: 1.6;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background-color: #fff;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      position: relative;
+      transition: transform 0.3s ease;
+    }
+
+    .container:hover {
+      transform: translateY(-5px);
+    }
+
+    .header {
+      text-align: center;
+      background: linear-gradient(90deg, #007bff, #00c4ff);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 25px;
+      font-family: 'Amiri', serif;
+    }
+
+    .timer {
+      text-align: center;
+      font-size: 1.3rem;
+      color: #dc3545;
+      margin-bottom: 20px;
+      font-weight: bold;
+      background: #ffe5e5;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .student-name {
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .student-name label {
+      font-size: 1.2rem;
+      margin-left: 15px;
+      color: #555;
+    }
+
+    .student-name input {
+      padding: 10px;
+      font-size: 1rem;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      width: 250px;
+      transition: border-color 0.3s ease;
+    }
+
+    .student-name input:focus {
+      border-color: #007bff;
+      outline: none;
+    }
+
+    .question {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 10px;
+      border: 1px solid #eee;
+      transition: background 0.3s ease;
+    }
+
+    .question:hover {
+      background: #f1f5ff;
+    }
+
+    .question h3 {
+      color: #007bff;
+      margin-bottom: 15px;
+      font-size: 1.4rem;
+      font-family: 'Amiri', serif;
+    }
+
+    .question p {
+      margin-bottom: 15px;
+      font-size: 1.15rem;
+    }
+
+    .options {
+      margin-right: 20px;
+    }
+
+    .options label {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      cursor: pointer;
+      font-size: 1.05rem;
+      padding: 10px;
+      border-radius: 8px;
+      transition: background-color 0.3s, transform 0.2s;
+      background: #fff;
+      border: 1px solid #ddd;
+    }
+
+    .options label:hover {
+      background-color: #e3efff;
+      transform: translateX(-5px);
+    }
+
+    .options input[type="radio"] {
+      margin-left: 12px;
+      accent-color: #007bff;
+    }
+
+    .submit-btn {
+      display: block;
+      width: 220px;
+      margin: 30px auto;
+      padding: 15px;
+      background: linear-gradient(90deg, #28a745, #34c759);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: transform 0.3s, background 0.3s;
+    }
+
+    .submit-btn:hover {
+      background: linear-gradient(90deg, #218838, #2db34a);
+      transform: scale(1.05);
+    }
+
+    .result {
+      margin-top: 30px;
+      display: none;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+    }
+
+    .result.show {
+      display: block;
+    }
+
+    .result h3 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 20px;
+      font-family: 'Amiri', serif;
+    }
+
+    .result-item {
+      margin-bottom: 15px;
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .result-item.correct {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .result-item.incorrect {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    /* Celebration Animation */
+    .celebration {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    .celebration.show {
+      display: flex;
+    }
+
+    .celebration-text {
+      font-size: 2.5rem;
+      color: #fff;
+      text-shadow: 0 0 10px #ffd700, 0 0 20px #ff4500;
+      animation: glow 1.5s infinite alternate;
+      margin-bottom: 20px;
+      font-family: 'Amiri', serif;
+    }
+
+    @keyframes glow {
+      from {
+        text-shadow: 0 0 10px #ffd700, 0 0 20px #ff4500;
+      }
+      to {
+        text-shadow: 0 0 20px #ffd700, 0 0 30px #ff4500;
+      }
+    }
+
+    .balloon {
+      position: absolute;
+      width: 60px;
+      height: 80px;
+      background: radial-gradient(circle, #ff6f61, #ff3d00);
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+      animation: float 5s infinite ease-in-out;
+    }
+
+    .balloon::before {
+      content: '';
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      width: 2px;
+      height: 20px;
+      background: #fff;
+      transform: translateX(-50%);
+    }
+
+    .balloon:nth-child(2) {
+      background: radial-gradient(circle, #40c4ff, #0288d1);
+      animation-delay: 1s;
+      left: 20%;
+      top: 10%;
+    }
+
+    .balloon:nth-child(3) {
+      background: radial-gradient(circle, #ffeb3b, #fbc02d);
+      animation-delay: 2s;
+      right: 15%;
+      top: 5%;
+    }
+
+    .balloon:nth-child(4) {
+      background: radial-gradient(circle, #66bb6a, #388e3c);
+      animation-delay: 3s;
+      left: 30%;
+      top: 20%;
+    }
+
+    .balloon:nth-child(5) {
+      background: radial-gradient(circle, #ab47bc, #8e24aa);
+      animation-delay: 4s;
+      right: 25%;
+      top: 15%;
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-50px);
+      }
+    }
+
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #ffd700;
+      animation: fall 4s infinite;
+    }
+
+    .confetti:nth-child(2n) {
+      background: #ff4500;
+      animation-delay: 0.5s;
+    }
+
+    .confetti:nth-child(3n) {
+      background: #40c4ff;
+      animation-delay: 1s;
+    }
+
+    .confetti:nth-child(4n) {
+      background: #66bb6a;
+      animation-delay: 1.5s;
+    }
+
+    @keyframes fall {
+      0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+
+      .header {
+        font-size: 1.3rem;
+      }
+
+      .question h3 {
+        font-size: 1.2rem;
+      }
+
+      .options label {
+        font-size: 0.95rem;
+      }
+
+      .celebration-text {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>اختبار مادة الحاسب الآلي (الفترة الثانية)</h1>
+    </div>
+
+    <div class="timer" id="timer">الوقت المتبقي: 15:00</div>
+
+    <div class="student-name">
+      <label for="studentName">اسم الطالب:</label>
+      <input type="text" id="studentName" placeholder="أدخل اسمك" required>
+    </div>
+
+    <!-- Question 1 -->
+    <div class="question" id="question1">
+      <h3>1) ضع علامة (✓) أمام العبارة الصحيحة وعلامة (✗) أمام العبارة غير الصحيحة:</h3>
+      <p>1.1 تعتبر روبوتات المحادثة أداة من أدوات الذكاء الاصطناعي.</p>
+      <div class="options">
+        <label><input type="radio" name="q1_1" value="true"> صحيح (✓)</label>
+        <label><input type="radio" name="q1_1" value="false"> خطأ (✗)</label>
+      </div>
+
+      <p>1.2 مكتبة الإسكندرية تعتبر من مقدمي الخدمات التعليمية المجانية.</p>
+      <div class="options">
+        <label><input type="radio" name="q1_2" value="true"> صحيح (✓)</label>
+        <label><input type="radio" name="q1_2" value="false"> خطأ (✗)</label>
+      </div>
+
+      <p>1.3 التجارة الإلكترونية هي عملية بيع وشراء المنتجات وجهاً لوجه.</p>
+      <div class="options">
+        <label><input type="radio" name="q1_3" value="true"> صحيح (✓)</label>
+        <label><input type="radio" name="q1_3" value="false"> خطأ (✗)</label>
+      </div>
+
+      <p>1.4 لا تملك الحوسبة السحابية أدوات للتواصل في الوقت نفسه.</p>
+      <div class="options">
+        <label><input type="radio" name="q1_4" value="true"> صحيح (✓)</label>
+        <label><input type="radio" name="q1_4" value="false"> خطأ (✗)</label>
+      </div>
+
+      <p>1.5 يمكن استخدام برنامج GIMP لتغيير لون معطف شخص في صورة.</p>
+      <div class="options">
+        <label><input type="radio" name="q1_5" value="true"> صحيح (✓)</label>
+        <label><input type="radio" name="q1_5" value="false"> خطأ (✗)</label>
+      </div>
+
+      <p>1.6 تستطيع استعادة ملف تم حذفه مؤقتاً.</p>
+      <div class="options">
+        <label><input type="radio" name="q1_6" value="true"> صحيح (✓)</label>
+        <label><input type="radio" name="q1_6" value="false"> خطأ (✗)</label>
+      </div>
+
+      <p>1.7 نظام التشغيل هو البرنامج الذي يدير وظائف الكمبيوتر ويقوم بتشغيل البرامج.</p>
+      <div class="options">
+        <label><input type="radio" name="q1_7" value="true"> صحيح (✓)</label>
+        <label><input type="radio" name="q1_7" value="false"> خطأ (✗)</label>
+      </div>
+    </div>
+
+    <!-- Question 2 -->
+    <div class="question" id="question2">
+      <h3>2) اختر الإجابة الصحيحة من بين الاختيارات التالية:</h3>
+      <p>2.1 يعتبر تطبيق .......................... من خدمات المراسلة.</p>
+      <div class="options">
+        <label><input type="radio" name="q2_1" value="wordprocessor"> (أ) معالج الكلمات</label>
+        <label><input type="radio" name="q2_1" value="audio"> (ب) التسجيلات الصوتية</label>
+        <label><input type="radio" name="q2_1" value="whatsapp"> (جـ) واتساب</label>
+        <label><input type="radio" name="q2_1" value="google"> (د) جوجل</label>
+      </div>
+
+      <p>2.2 عند كتابة تقرير ما نستخدم برنامج:</p>
+      <div class="options">
+        <label><input type="radio" name="q2_2" value="powerpoint"> (أ) PowerPoint</label>
+        <label><input type="radio" name="q2_2" value="paint"> (ب) Paint</label>
+        <label><input type="radio" name="q2_2" value="excel"> (جـ) Excel</label>
+        <label><input type="radio" name="q2_2" value="word"> (د) Word</label>
+      </div>
+
+      <p>2.3 تستخدم الشركات الكبرى .......................... لتسجيل بيانات العاملين بها.</p>
+      <div class="options">
+        <label><input type="radio" name="q2_3" value="books"> (أ) كتباً</label>
+        <label><input type="radio" name="q2_3" value="websites"> (ب) مواقع إلكترونية</label>
+        <label><input type="radio" name="q2_3" value="databases"> (جـ) قواعد بيانات</label>
+        <label><input type="radio" name="q2_3" value="presentation"> (د) عرض تقديمي</label>
+      </div>
+
+      <p>2.4 تعتبر .......................... مثالاً على الاتصال في الوقت نفسه.</p>
+      <div class="options">
+        <label><input type="radio" name="q2_4" value="chatrooms"> (أ) غرف الدردشة الفورية</label>
+        <label><input type="radio" name="q2_4" value="recorded"> (ب) البرامج المسجلة</label>
+        <label><input type="radio" name="q2_4" value="messages"> (جـ) الرسائل المسجلة</label>
+        <label><input type="radio" name="q2_4" value="editors"> (د) برامج تعديل الصور</label>
+      </div>
+
+      <p>2.5 يمكن شراء الأسهم وبيعها عبر .......................... الإلكترونية الموثوقة.</p>
+      <div class="options">
+        <label><input type="radio" name="q2_5" value="documents"> (أ) المستندات</label>
+        <label><input type="radio" name="q2_5" value="websites"> (ب) المواقع</label>
+        <label><input type="radio" name="q2_5" value="ads"> (جـ) الإعلانات</label>
+        <label><input type="radio" name="q2_5" value="magazines"> (د) المجلات</label>
+      </div>
+
+      <p>2.6 يجب على مستخدمي الذكاء الاصطناعي أن يكونوا:</p>
+      <div class="options">
+        <label><input type="radio" name="q2_6" value="bullies"> (أ) متنمرين</label>
+        <label><input type="radio" name="q2_6" value="unethical"> (ب) غير أخلاقيين</label>
+        <label><input type="radio" name="q2_6" value="ethical"> (جـ) أخلاقيين</label>
+        <label><input type="radio" name="q2_6" value="irresponsible"> (د) غير مسئولين</label>
+      </div>
+
+      <p>2.7 تشير التجارة الإلكترونية إلى عملية شراء السلع وبيعها عبر:</p>
+      <div class="options">
+        <label><input type="radio" name="q2_7" value="stores"> (أ) المتاجر</label>
+        <label><input type="radio" name="q2_7" value="companies"> (ب) الشركات</label>
+        <label><input type="radio" name="q2_7" value="markets"> (جـ) الأسواق</label>
+        <label><input type="radio" name="q2_7" value="internet"> (د) الإنترنت</label>
+      </div>
+
+      <p>2.8 تطبيق مصمم لتخزين الأموال على هو:</p>
+      <div class="options">
+        <label><input type="radio" name="q2_8" value="facebook"> (أ) فيسبوك</label>
+        <label><input type="radio" name="q2_8" value="wallet"> (ب) محفظة الهواتف المحمولة</label>
+        <label><input type="radio" name="q2_8" value="browsers"> (جـ) المتصفحات</label>
+        <label><input type="radio" name="q2_8" value="blog"> (د) المدونة الرقمية</label>
+      </div>
+    </div>
+
+    <button class="submit-btn" onclick="submitExam()">إرسال الإجابات</button>
+    <div class="result" id="result"></div>
+  </div>
+
+  <!-- Celebration Overlay -->
+  <div class="celebration" id="celebration">
+    <div class="celebration-text">مبروك! حصلت على الدرجة الكاملة 🎉</div>
+    <div class="balloon" style="left: 10%; top: 5%;"></div>
+    <div class="balloon"></div>
+    <div class="balloon"></div>
+    <div class="balloon"></div>
+    <div class="balloon"></div>
+    <div class="confetti" style="left: 5%;"></div>
+    <div class="confetti" style="left: 15%;"></div>
+    <div class="confetti" style="left: 25%;"></div>
+    <div class="confetti" style="left: 35%;"></div>
+    <div class="confetti" style="left: 45%;"></div>
+    <div class="confetti" style="left: 55%;"></div>
+    <div class="confetti" style="left: 65%;"></div>
+    <div class="confetti" style="left: 75%;"></div>
+    <div class="confetti" style="left: 85%;"></div>
+    <div class="confetti" style="left: 95%;"></div>
+  </div>
+
+  <script>
+    // Timer for 15 minutes
+    let timeLeft = 15 * 60; // 15 minutes in seconds
+    const timerElement = document.getElementById('timer');
+
+    const timer = setInterval(() => {
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = timeLeft % 60;
+      timerElement.textContent = `الوقت المتبقي: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+      timeLeft--;
+
+      if (timeLeft < 0) {
+        clearInterval(timer);
+        timerElement.textContent = 'انتهى الوقت!';
+        submitExam();
+      }
+    }, 1000);
+
+    function submitExam() {
+      // Stop the timer
+      clearInterval(timer);
+
+      // Validate student name
+      const studentName = document.getElementById('studentName').value;
+      if (!studentName) {
+        alert('يرجى إدخال اسمك أولاً');
+        return;
+      }
+
+      // Validate all questions are answered
+      let allAnswered = true;
+      let unansweredQuestions = [];
+
+      // Check Question 1
+      for (let i = 1; i <= 7; i++) {
+        const selected = document.querySelector(`input[name="q1_${i}"]:checked`);
+        if (!selected) {
+          allAnswered = false;
+          unansweredQuestions.push(`السؤال 1.${i}`);
+        }
+      }
+
+      // Check Question 2
+      for (let i = 1; i <= 8; i++) {
+        const selected = document.querySelector(`input[name="q2_${i}"]:checked`);
+        if (!selected) {
+          allAnswered = false;
+          unansweredQuestions.push(`السؤال 2.${i}`);
+        }
+      }
+
+      // If not all questions are answered, show alert and stop submission
+      if (!allAnswered) {
+        alert(`يرجى الإجابة على جميع الأسئلة قبل التسليم. الأسئلة غير المجابة: ${unansweredQuestions.join(', ')}`);
+        return;
+      }
+
+      // Proceed with scoring if all questions are answered
+      let score = 0;
+      const totalQuestions = 15; // 7 for Q1 + 8 for Q2
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = `<h3>نتيجة الطالب: ${studentName}</h3>`;
+
+      // Correct answers for Question 1
+      const q1Answers = {
+        q1_1: { answer: 'true', explanation: 'روبوتات المحادثة تعتمد على الذكاء الاصطناعي للتفاعل مع المستخدمين.' },
+        q1_2: { answer: 'true', explanation: 'مكتبة الإسكندرية تقدم خدمات تعليمية مجانية مثل الوصول إلى الكتب والموارد الرقمية.' },
+        q1_3: { answer: 'false', explanation: 'التجارة الإلكترونية تتم عبر الإنترنت، وليس وجهاً لوجه.' },
+        q1_4: { answer: 'false', explanation: 'الحوسبة السحابية توفر أدوات للتواصل في الوقت الحقيقي مثل Google Meet وMicrosoft Teams.' },
+        q1_5: { answer: 'true', explanation: 'برنامج GIMP يمكنه تعديل الصور، بما في ذلك تغيير لون معطف شخص.' },
+        q1_6: { answer: 'true', explanation: 'يمكن استعادة الملفات المحذوفة مؤقتاً من سلة المحذوفات.' },
+        q1_7: { answer: 'true', explanation: 'نظام التشغيل (مثل ويندوز) يدير وظائف الكمبيوتر ويشغل البرامج.' }
+      };
+
+      // Correct answers for Question 2
+      const q2Answers = {
+        q2_1: { answer: 'whatsapp', explanation: 'واتساب هو تطبيق مراسلة شهير.' },
+        q2_2: { answer: 'word', explanation: 'برنامج Word يُستخدم بشكل أساسي لكتابة التقارير.' },
+        q2_3: { answer: 'databases', explanation: 'الشركات تستخدم قواعد البيانات لتسجيل بيانات العاملين بكفاءة.' },
+        q2_4: { answer: 'chatrooms', explanation: 'غرف الدردشة الفورية تتيح التواصل في الوقت الحقيقي.' },
+        q2_5: { answer: 'websites', explanation: 'يمكن شراء وبيع الأسهم عبر مواقع إلكترونية موثوقة.' },
+        q2_6: { answer: 'ethical', explanation: 'مستخدمو الذكاء الاصطناعي يجب أن يكونوا أخلاقيين لضمان الاستخدام المسؤول.' },
+        q2_7: { answer: 'internet', explanation: 'التجارة الإلكترونية تتم عبر الإنترنت.' },
+        q2_8: { answer: 'wallet', explanation: 'محفظة الهواتف المحمولة تُستخدم لتخزين الأموال رقمياً.' }
+      };
+
+      // Check Question 1 answers
+      const q1Div = document.getElementById('question1');
+      const q1Paragraphs = q1Div.querySelectorAll('p');
+
+      for (let i = 1; i <= 7; i++) {
+        const selected = document.querySelector(`input[name="q1_${i}"]:checked`);
+        const questionTextElement = q1Paragraphs[i - 1];
+        const questionText = questionTextElement ? questionTextElement.textContent : `السؤال ${i}`;
+        const div = document.createElement('div');
+        div.classList.add('result-item');
+
+        if (selected) {
+          if (selected.value === q1Answers[`q1_${i}`].answer) {
+            score++;
+            div.classList.add('correct');
+            div.textContent = `${questionText}: إجابتك صحيحة`;
+          } else {
+            div.classList.add('incorrect');
+            div.textContent = `${questionText}: إجابتك خاطئة - الإجابة الصحيحة: ${q1Answers[`q1_${i}`].answer === 'true' ? 'صحيح (✓)' : 'خطأ (✗)'} - ${q1Answers[`q1_${i}`].explanation}`;
+          }
+        }
+        resultDiv.appendChild(div);
+      }
+
+      // Check Question 2 answers
+      const q2Div = document.getElementById('question2');
+      const q2Paragraphs = q2Div.querySelectorAll('p');
+
+      for (let i = 1; i <= 8; i++) {
+        const selected = document.querySelector(`input[name="q2_${i}"]:checked`);
+        const questionTextElement = q2Paragraphs[i - 1];
+        const questionText = questionTextElement ? questionTextElement.textContent : `السؤال ${i}`;
+        const div = document.createElement('div');
+        div.classList.add('result-item');
+
+        if (selected) {
+          if (selected.value === q2Answers[`q2_${i}`].answer) {
+            score++;
+            div.classList.add('correct');
+            div.textContent = `${questionText}: إجابتك صحيحة`;
+          } else {
+            div.classList.add('incorrect');
+            div.textContent = `${questionText}: إجابتك خاطئة - الإجابة الصحيحة: ${document.querySelector(`input[name="q2_${i}"][value="${q2Answers[`q2_${i}`].answer}"]`).parentElement.textContent} - ${q2Answers[`q2_${i}`].explanation}`;
+          }
+        }
+        resultDiv.appendChild(div);
+      }
+
+      const scoreDiv = document.createElement('div');
+      scoreDiv.style.textAlign = 'center';
+      scoreDiv.style.fontSize = '1.3rem';
+      scoreDiv.style.marginTop = '25px';
+      scoreDiv.style.fontWeight = 'bold';
+      scoreDiv.textContent = `النتيجة النهائية: ${score} من ${totalQuestions}`;
+      resultDiv.appendChild(scoreDiv);
+
+      // Show celebration if perfect score
+      if (score === totalQuestions) {
+        const celebrationDiv = document.getElementById('celebration');
+        celebrationDiv.classList.add('show');
+      }
+
+      resultDiv.classList.add('show');
+      document.querySelector('.submit-btn').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
