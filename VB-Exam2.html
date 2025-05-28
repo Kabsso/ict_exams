@@ -1,0 +1,771 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>امتحان حاسب آلي - الصف الثالث الإعدادي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&family=Roboto:wght@300;500&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Tajawal', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #ffdde1, #e1f5fe);
+            direction: rtl;
+            text-align: right;
+            color: #333;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            position: relative;
+            z-index: 10;
+            transition: transform 0.3s ease;
+        }
+        .container:hover {
+            transform: translateY(-5px);
+        }
+        h1 {
+            color: #ff4081;
+            text-align: center;
+            font-size: 3em;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            animation: fadeInDown 1s ease;
+        }
+        h2 {
+            color: #ff8e53;
+            font-size: 2.2em;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: 500;
+        }
+        .school-info {
+            text-align: center;
+            font-size: 1.4em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .name-page, .quiz-page {
+            display: none;
+        }
+        .name-page.active, .quiz-page.active {
+            display: block;
+        }
+        .name-input {
+            text-align: center;
+            margin: 40px 0;
+        }
+        .name-input p {
+            font-size: 1.6em;
+            color: #333;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+        .name-input input {
+            padding: 18px 25px;
+            font-size: 1.5em;
+            border: none;
+            border-radius: 50px;
+            width: 70%;
+            max-width: 450px;
+            background: rgba(255, 255, 255, 0.5);
+            color: #333;
+            border: 2px solid #ffcc00;
+            outline: none;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+        .name-input input:focus {
+            border-color: #ff4081;
+            background: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 0 15px rgba(255, 64, 129, 0.5);
+        }
+        button#startQuiz {
+            display: block;
+            margin: 30px auto;
+            padding: 18px 40px;
+            background: linear-gradient(45deg, #ff4081, #ff8e53);
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.6em;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.4s ease;
+            box-shadow: 0 5px 15px rgba(255, 64, 129, 0.4);
+        }
+        button#startQuiz:hover {
+            background: linear-gradient(45deg, #ff8e53, #ff4081);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 142, 83, 0.6);
+        }
+        .question {
+            margin: 25px 0;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            border-left: 5px solid #ffcc00;
+            transition: all 0.3s ease;
+        }
+        .question:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: translateX(10px);
+        }
+        .question p {
+            font-size: 1.6em;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .options label {
+            display: block;
+            margin: 12px 0;
+            font-size: 1.4em;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .options label:hover {
+            background: rgba(255, 204, 0, 0.5);
+            transform: scale(1.03);
+        }
+        .options input {
+            margin-left: 15px;
+            transform: scale(1.5);
+            accent-color: #ffcc00;
+        }
+        .correct-answer {
+            color: #4caf50;
+            font-size: 1.2em;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        button#submit {
+            display: block;
+            margin: 40px auto;
+            padding: 18px 40px;
+            background: linear-gradient(45deg, #ff4081, #ff8e53);
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.6em;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.4s ease;
+            box-shadow: 0 5px 15px rgba(255, 64, 129, 0.4);
+        }
+        button#submit:hover {
+            background: linear-gradient(45deg, #ff8e53, #ff4081);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 142, 83, 0.6);
+        }
+        button#submit:disabled {
+            background: rgba(255, 255, 255, 0.5);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        button#tryAgain {
+            display: inline-block;
+            margin: 20px auto 0;
+            padding: 15px 35px;
+            background: linear-gradient(45deg, #4ecdc4, #45b7cd);
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.4em;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.4s ease;
+            box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
+        }
+        button#tryAgain:hover {
+            background: linear-gradient(45deg, #45b7cd, #4ecdc4);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(69, 183, 205, 0.6);
+        }
+        #result, #correction {
+            margin-top: 40px;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+            font-size: 1.5em;
+            animation: zoomIn 0.8s ease;
+        }
+        #result.success {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+            border: 2px solid #4caf50;
+            position: relative;
+            width: 90%;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+        #result.fail {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 2px solid #f44336;
+            position: relative;
+            width: 90%;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+        #correction {
+            background: rgba(255, 235, 59, 0.2);
+            color: #ffca28;
+            border: 2px solid #ffca28;
+            margin-top: 20px;
+            width: 90%;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+        #correction h3 {
+            font-size: 1.7em;
+            margin-bottom: 15px;
+        }
+        #correction p {
+            margin: 10px 0;
+            font-size: 1.3em;
+        }
+        .celebration-effect {
+            position: absolute;
+            pointer-events: none;
+            z-index: 20;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .heart {
+            width: 20px;
+            height: 20px;
+            background: none;
+            transform: rotate(45deg);
+            animation: heartFloat 5s ease-in-out forwards;
+        }
+        .heart::before, .heart::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #ff4081;
+            border-radius: 50%;
+        }
+        .heart::before {
+            top: -10px;
+            left: 0;
+        }
+        .heart::after {
+            top: 0;
+            left: -10px;
+        }
+        @keyframes heartFloat {
+            0% { transform: translateY(0) rotate(45deg); opacity: 1; }
+            100% { transform: translateY(-200px) rotate(360deg); opacity: 0; }
+        }
+        .glow-circle {
+            width: 15px;
+            height: 15px;
+            background: radial-gradient(circle, #ffd700 30%, transparent 70%);
+            border-radius: 50%;
+            animation: glowPulse 3s ease-in-out infinite;
+        }
+        @keyframes glowPulse {
+            0% { transform: scale(0.5); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.5); opacity: 0.5; }
+        }
+        @media (max-width: 600px) {
+            .container { margin: 20px; padding: 20px; }
+            h1 { font-size: 2.2em; }
+            h2 { font-size: 1.8em; }
+            .school-info { font-size: 1.2em; }
+            .name-input input { width: 90%; font-size: 1.2em; padding: 12px; }
+            .question p { font-size: 1.3em; }
+            .options label { font-size: 1.1em; padding: 10px; }
+            .correct-answer { font-size: 1em; }
+            button#startQuiz, button#submit, button#tryAgain { font-size: 1.3em; padding: 12px 30px; }
+            #result, #correction { width: 90%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="name-page" class="name-page active">
+            <h1 class="animate__animated animate__fadeInDown">🌟 امتحان حاسب آلي 🌟</h1>
+            <div class="school-info">
+                <p>إعداد: المهندس محمد بسيوني</p>
+                <p>مدرسة: 2B-SCHOOL</p>
+                <p>مراجعة نهائية - تكنولوجيا المعلومات</p>
+                <p>للصف الثالث الإعدادي</p>
+            </div>
+            <div class="name-input">
+                <p>أدخل اسمك لتبدأ المغامرة:</p>
+                <input type="text" id="studentName" placeholder="اكتب اسمك هنا" aria-label="اسم الطالب" onkeypress="if(event.key === 'Enter') document.getElementById('startQuiz').click()">
+                <p>أدخل رقم هاتفك:</p>
+                <input type="tel" id="phoneNumber" placeholder="اكتب رقم هاتفك" aria-label="رقم الهاتف" onkeypress="if(event.key === 'Enter') document.getElementById('startQuiz').click()">
+            </div>
+            <button id="startQuiz">بدأ الامتحان</button>
+        </div>
+        <div id="quiz-page" class="quiz-page">
+            <h1 class="animate__animated animate__fadeInDown">🌟 امتحان حاسب آلي - الصف الثالث الإعدادي 🌟</h1>
+            <div class="school-info">
+                <p>إعداد: المهندس محمد بسيوني</p>
+                <p>مدرسة: 2B-SCHOOL</p>
+                <p>مراجعة نهائية - تكنولوجيا المعلومات</p>
+            </div>
+            <div id="quiz">
+                <h2>السؤال الأول: اختر الإجابة الصحيحة من بين الأقواس</h2>
+                <div class="question" data-answer="7">
+                    <p>س1: ناتج تنفيذ العملية الحسابية:
+                       11 -
+                        (7+2)
+                       *2
+                    </p>                    <div class="options">
+                        <label><input type="radio" name="q1" value="-7"> -7</label>
+                        <label><input type="radio" name="q1" value="-5"> -5</label>
+                        <label><input type="radio" name="q1" value="7"> 7</label>
+                        <label><input type="radio" name="q1" value="16"> 16</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: 7</div>
+                </div>
+                <div class="question" data-answer="Rem">
+                    <p>س2: يستخدم المبرمج الأمر .... في كتابة ملاحظات بالبرنامج ولا يتم ترجمتها</p>
+                    <div class="options">
+                        <label><input type="radio" name="q2" value="Single"> Single</label>
+                        <label><input type="radio" name="q2" value="Rem"> Rem</label>
+                        <label><input type="radio" name="q2" value="Next"> Next</label>
+                        <label><input type="radio" name="q2" value="Dim"> Dim</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: Rem</div>
+                </div>
+                <div class="question" data-answer="5Cairo">
+                    <p>س3: أسماء المتغيرات التالية صحيحة ما عدا</p>
+                    <div class="options">
+                        <label><input type="radio" name="q3" value="_E_Address"> _E_Address</label>
+                        <label><input type="radio" name="q3" value="Cairo5"> Cairo5</label>
+                        <label><input type="radio" name="q3" value="E_Address"> E_Address</label>
+                        <label><input type="radio" name="q3" value="5Cairo"> 5Cairo</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: 5Cairo</div>
+                </div>
+                <div class="question" data-answer="أي عدد من المرات">
+                    <p>س4: يتم استدعاء الإجراء في نافذة الكود ..........</p>
+                    <div class="options">
+                        <label><input type="radio" name="q4" value="مرة واحدة فقط"> مرة واحدة فقط</label>
+                        <label><input type="radio" name="q4" value="مرتين فقط"> مرتين فقط</label>
+                        <label><input type="radio" name="q4" value="أي عدد من المرات"> أي عدد من المرات</label>
+                        <label><input type="radio" name="q4" value="لا شيء مما سبق"> لا شيء مما سبق</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: أي عدد من المرات</div>
+                </div>
+                <div class="question" data-answer="Boolean">
+                    <p>س5: لتخزين قيم منطقية نستخدم متغيرات من النوع</p>
+                    <div class="options">
+                        <label><input type="radio" name="q5" value="Boolean"> Boolean</label>
+                        <label><input type="radio" name="q5" value="Short"> Short</label>
+                        <label><input type="radio" name="q5" value="Byte"> Byte</label>
+                        <label><input type="radio" name="q5" value="Date"> Date</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: Boolean</div>
+                </div>
+                <div class="question" data-answer="Do While">
+                    <p>س6: تستخدم جملة .......... في تكرار كود غير محدد عدد مرات التكرار</p>
+                    <div class="options">
+                        <label><input type="radio" name="q6" value="IF.. Then"> IF.. Then</label>
+                        <label><input type="radio" name="q6" value="For .. Next"> For .. Next</label>
+                        <label><input type="radio" name="q6" value="If.. Then .. Else"> If.. Then .. Else</label>
+                        <label><input type="radio" name="q6" value="Do While"> Do While</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: Do While</div>
+                </div>
+                <div class="question" data-answer="vbCrLf">
+                    <p>س7: كلمة محجوزة تستخدم لإنشاء سطر جديد</p>
+                    <div class="options">
+                        <label><input type="radio" name="q7" value="Enter"> Enter</label>
+                        <label><input type="radio" name="q7" value="vbCrLf"> vbCrLf</label>
+                        <label><input type="radio" name="q7" value="REM"> REM</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: vbCrLf</div>
+                </div>
+                <div class="question" data-answer="For M = 18 To 8 Step -2">
+                    <p>س8: لعرض الأعداد الزوجية مرتبة تنازلياً من 18 إلى 8 نكتب الكود</p>
+                    <div class="options">
+                        <label><input type="radio" name="q8" value="For M = 18 To 8"> For M = 18 To 8</label>
+                        <label><input type="radio" name="q8" value="For M = 18 To 8 Steps"> For M = 18 To 8 Steps</label>
+                        <label><input type="radio" name="q8" value="For M = 18 To 8 Step -2"> For M = 18 To 8 Step -2</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: For M = 18 To 8 Step -2</div>
+                </div>
+                <div class="question" data-answer="Const">
+                    <p>س9: عند الإعلان عن الثابت الرياضي (ط) نستخدم الأمر</p>
+                    <div class="options">
+                        <label><input type="radio" name="q9" value="Sub"> Sub</label>
+                        <label><input type="radio" name="q9" value="Dim"> Dim</label>
+                        <label><input type="radio" name="q9" value="Const"> Const</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: Const</div>
+                </div>
+                <div class="question" data-answer="8">
+                    <p>س10: الناتج النهائي للمتغير R في المعادلة 'R = 16 - 6 / 2 +3' هو</p>
+                    <div class="options">
+                        <label><input type="radio" name="q10" value="8"> 8</label>
+                        <label><input type="radio" name="q10" value="2"> 2</label>
+                        <label><input type="radio" name="q10" value="16"> 16</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: 8</div>
+                </div>
+                <div class="question" data-answer="منطقي">
+                    <p>س11: إذا وجد خطأ في نتيجة حساب مساحة الدائرة في برنامج يعتبر هذا خطأ</p>
+                    <div class="options">
+                        <label><input type="radio" name="q11" value="لغوي"> لغوي</label>
+                        <label><input type="radio" name="q11" value="منطقي"> منطقي</label>
+                        <label><input type="radio" name="q11" value="أثناء التشغيل"> أثناء التشغيل</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: منطقي</div>
+                </div>
+                <div class="question" data-answer="Odd">
+                    <p>س12: IF M mod 2 = 0 Then MsgBox ("Even") Else MsgBox ("Odd") إذا كانت M = 9 فالناتج سيكون</p>
+                    <div class="options">
+                        <label><input type="radio" name="q12" value="True"> True</label>
+                        <label><input type="radio" name="q12" value="Odd"> Odd</label>
+                        <label><input type="radio" name="q12" value="Even"> Even</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: Odd</div>
+                </div>
+
+                <h2>السؤال الثاني: ضع علامة (✔) أمام العبارة الصحيحة، وعلامة (✘) أمام العبارة الخاطئة</h2>
+                <div class="question" data-answer="False">
+                    <p>س13: جميع أنواع البيانات التي يتم حفظها في الذاكرة تشغل نفس المساحة التخزينية</p>
+                    <div class="options">
+                        <label><input type="radio" name="q13" value="True"> ✔</label>
+                        <label><input type="radio" name="q13" value="False"> ✘</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: ✘</div>
+                </div>
+                <div class="question" data-answer="False">
+                    <p>س14: الإعلان عن دالة يبدأ بـ (Sub) وينتهي بـ (End Sub)</p>
+                    <div class="options">
+                        <label><input type="radio" name="q14" value="True"> ✔</label>
+                        <label><input type="radio" name="q14" value="False"> ✘</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: ✘</div>
+                </div>
+                <div class="question" data-answer="True">
+                    <p>س15: يصنف قيمة نوع الطالب 'ذكر' أم 'أنثى' ضمن البيانات المتنوعة المنطقية</p>
+                    <div class="options">
+                        <label><input type="radio" name="q15" value="True"> ✔</label>
+                        <label><input type="radio" name="q15" value="False"> ✘</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: ✔</div>
+                </div>
+                <div class="question" data-answer="True">
+                    <p>س16: التخفي الإلكتروني يعتبر صورة من صور التعدي الإلكتروني</p>
+                    <div class="options">
+                        <label><input type="radio" name="q16" value="True"> ✔</label>
+                        <label><input type="radio" name="q16" value="False"> ✘</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: ✔</div>
+                </div>
+                <div class="question" data-answer="False">
+                    <p>س17: جملة الإعلان عن المتغيرات يتحدد فيها اسم المتغير ونوعه وقيمته الثابتة</p>
+                    <div class="options">
+                        <label><input type="radio" name="q17" value="True"> ✔</label>
+                        <label><input type="radio" name="q17" value="False"> ✘</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: ✘</div>
+                </div>
+                <div class="question" data-answer="False">
+                    <p>س18: التخفي الإلكتروني هو نشر معلومات عن شخص محدد أو أكثر بشكل مسيء</p>
+                    <div class="options">
+                        <label><input type="radio" name="q18" value="True"> ✔</label>
+                        <label><input type="radio" name="q18" value="False"> ✘</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: ✘</div>
+                </div>
+                <div class="question" data-answer="False">
+                    <p>س19: أحد زملائك ليس له بريد إلكتروني، من الجيد أن تعطيه حسابك الشخصي ليستخدمه</p>
+                    <div class="options">
+                        <label><input type="radio" name="q19" value="True"> ✔</label>
+                        <label><input type="radio" name="q19" value="False"> ✘</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: ✘</div>
+                </div>
+                <div class="question" data-answer="True">
+                    <p>س20: إذا كان M = 12 و R = 5، فإن ناتج التعبير الشرطي (R + 7) <= M هو True</p>
+                    <div class="options">
+                        <label><input type="radio" name="q20" value="True"> ✔</label>
+                        <label><input type="radio" name="q20" value="False"> ✘</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: ✔</div>
+                </div>
+                <div class="question" data-answer="True">
+                    <p>س21: تستخدم Select Case في حالة اختبار أكثر من تعبير شرطي بجملة شرطية واحدة</p>
+                    <div class="options">
+                        <label><input type="radio" name="q21" value="True"> ✔</label>
+                        <label><input type="radio" name="q21" value="False"> ✘</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: ✔</div>
+                </div>
+                <div class="question" data-answer="False">
+                    <p>س22: الدالة Function لا تعود بقيمة بينما الإجراء Sub يعود بقيمة</p>
+                    <div class="options">
+                        <label><input type="radio" name="q22" value="True"> ✔</label>
+                        <label><input type="radio" name="q22" value="False"> ✘</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: ✘</div>
+                </div>
+                <div class="question" data-answer="False">
+                    <p>س23: في لغة VB.Net يتم تشغيل البرنامج بالضغط على مفتاح F8 من لوحة المفاتيح</p>
+                    <div class="options">
+                        <label><input type="radio" name="q23" value="True"> ✔</label>
+                        <label><input type="radio" name="q23" value="False"> ✘</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: ✘</div>
+                </div>
+                <div class="question" data-answer="True">
+                    <p>س24: الأخطاء اللغوية هي أخطاء في الصيغة العامة لأوامر اللغة</p>
+                    <div class="options">
+                        <label><input type="radio" name="q24" value="True"> ✔</label>
+                        <label><input type="radio" name="q24" value="False"> ✘</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: ✔</div>
+                </div>
+                <div class="question" data-answer="False">
+                    <p>س25: كتابة اسم متغير العداد بجوار (Next) إجبارية</p>
+                    <div class="options">
+                        <label><input type="radio" name="q25" value="True"> ✔</label>
+                        <label><input type="radio" name="q25" value="False"> ✘</label>
+                    </div>
+                    <div class="correct-answer" style="display: none;">الإجابة الصحيحة: ✘</div>
+                </div>
+
+                <button id="submit" disabled>تسليم الإجابات</button>
+                <div id="result"></div>
+                <div id="correction"></div>
+                <div id="celebration" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+    <audio id="victorySound" src="https://www.soundjay.com/buttons/applause-01.mp3" preload="auto" muted></audio>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.js"></script>
+    <script>
+        function addEvent(element, event, handler) {
+            if (element.addEventListener) element.addEventListener(event, handler, false);
+            else if (element.attachEvent) element.attachEvent('on' + event, handler);
+        }
+        const namePage = document.getElementById('name-page');
+        const quizPage = document.getElementById('quiz-page');
+        const studentNameInput = document.getElementById('studentName');
+        const phoneNumberInput = document.getElementById('phoneNumber');
+        const startQuizButton = document.getElementById('startQuiz');
+        const submit = document.getElementById('submit');
+        const result = document.getElementById('result');
+        const correction = document.getElementById('correction');
+        const celebration = document.getElementById('celebration');
+        const victorySound = document.getElementById('victorySound');
+        let studentName = '', phoneNumber = '';
+
+        function startQuiz() {
+            studentName = studentNameInput.value.trim();
+            phoneNumber = phoneNumberInput.value.trim();
+            if (!studentName || !phoneNumber) {
+                alert('من فضلك، أدخل اسمك ورقم هاتفك أولاً!');
+                if (!studentName) studentNameInput.focus();
+                else phoneNumberInput.focus();
+                return;
+            }
+            namePage.classList.remove('active');
+            quizPage.classList.add('active');
+            window.scrollTo(0, 0);
+        }
+        addEvent(startQuizButton, 'click', startQuiz);
+        addEvent(studentNameInput, 'keypress', (e) => {
+            if (e.key === 'Enter') startQuiz();
+        });
+        addEvent(phoneNumberInput, 'keypress', (e) => {
+            if (e.key === 'Enter') startQuiz();
+        });
+
+        function checkAllAnswered() {
+            const questions = document.getElementsByClassName('question');
+            let allAnswered = true;
+            for (let i = 0; i < questions.length; i++) {
+                const inputName = 'q' + (i + 1);
+                const inputs = document.getElementsByName(inputName);
+                let answered = false;
+                for (let j = 0; j < inputs.length; j++) {
+                    if (inputs[j].checked) {
+                        answered = true;
+                        break;
+                    }
+                }
+                if (!answered) allAnswered = false;
+            }
+            submit.disabled = !allAnswered;
+            return allAnswered;
+        }
+        addEvent(document, 'change', checkAllAnswered);
+
+        addEvent(submit, 'click', () => {
+            if (!checkAllAnswered()) {
+                alert('يرجى الإجابة على جميع الأسئلة أولاً!');
+                return;
+            }
+            const questions = document.getElementsByClassName('question');
+            let score = 0, total = questions.length, wrongAnswers = [];
+            for (let i = 0; i < total; i++) {
+                const question = questions[i];
+                const correctAnswer = question.getAttribute('data-answer');
+                const inputName = 'q' + (i + 1);
+                const inputs = document.getElementsByName(inputName);
+                let selectedValue = null;
+                for (let j = 0; j < inputs.length; j++) {
+                    if (inputs[j].checked) {
+                        selectedValue = inputs[j].value;
+                        break;
+                    }
+                }
+                if (selectedValue === correctAnswer || (selectedValue === "True" && correctAnswer === "True") || (selectedValue === "False" && correctAnswer === "False")) score++;
+                else wrongAnswers.push({
+                    question: question.getElementsByTagName('p')[0].innerHTML,
+                    selected: selectedValue || 'لم يتم اختيار إجابة',
+                    correct: correctAnswer === "True" ? "✔" : correctAnswer === "False" ? "✘" : correctAnswer
+                });
+                question.querySelector('.correct-answer').style.display = 'block';
+            }
+            result.style.display = 'block';
+            const studentName = document.getElementById('studentName').value;
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            if (score === total) {
+                result.className = 'success animate__animated animate__zoomIn';
+                result.innerHTML = `
+                    <h2>مبروك يا ${studentName}!</h2>
+                    <p>حصلت على ${total}/${total}! 🌟</p>
+                    <p>أنت نجم المدرسة! 🚀 مستقبلك مشرق كالشمس! 🌞</p>
+                    <button id="tryAgain">ابدأ مغامرة جديدة</button>
+                `;
+                startCelebration();
+            } else {
+                result.className = 'fail animate__animated animate__fadeIn';
+                result.innerHTML = `
+                    <h2>حاول مجددًا يا ${studentName}!</h2>
+                    <p>درجتك: ${score}/${total}</p>
+                    <button id="tryAgain">ابدأ مغامرة جديدة</button>
+                `;
+                correction.style.display = 'block';
+                let correctionHtml = '<h3>تصحيح الأخطاء:</h3>';
+                wrongAnswers.forEach(w => {
+                    correctionHtml += `<p><strong>السؤال:</strong> ${w.question}<br><strong>إجابتك:</strong> ${w.selected === "True" ? "✔" : w.selected === "False" ? "✘" : w.selected}<br><strong>الصحيح:</strong> ${w.correct}</p>`;
+                });
+                correction.innerHTML = correctionHtml;
+            }
+            const tryAgainButton = document.getElementById('tryAgain');
+            addEvent(tryAgainButton, 'click', resetQuiz);
+        });
+
+        function startCelebration() {
+            celebration.style.display = 'block';
+            const isSmallScreen = window.innerWidth < 600;
+            const heartCount = isSmallScreen ? 30 : 60;
+            const glowCount = isSmallScreen ? 40 : 80;
+            for (let i = 0; i < heartCount; i++) {
+                const heart = document.createElement('div');
+                heart.className = 'heart celebration-effect';
+                heart.style.left = Math.random() * 100 + 'vw';
+                heart.style.animationDelay = (i * 0.2) + 's';
+                celebration.appendChild(heart);
+                setTimeout(() => heart.remove(), 5000);
+            }
+            for (let i = 0; i < glowCount; i++) {
+                const glow = document.createElement('div');
+                glow.className = 'glow-circle celebration-effect';
+                glow.style.left = Math.random() * 100 + 'vw';
+                glow.style.top = Math.random() * 100 + 'vh';
+                glow.style.animationDelay = Math.random() * 1 + 's';
+                celebration.appendChild(glow);
+                setTimeout(() => glow.remove(), 3000);
+            }
+            victorySound.muted = false;
+            victorySound.play().catch(() => {});
+        }
+
+        function resetQuiz() {
+            const inputs = document.getElementsByTagName('input');
+            for (let i = 0; i < inputs.length; i++) {
+                if (inputs[i].type === 'radio') inputs[i].checked = false;
+                else if (inputs[i].id === 'studentName' || inputs[i].id === 'phoneNumber') inputs[i].value = '';
+            }
+            const correctAnswers = document.querySelectorAll('.correct-answer');
+            correctAnswers.forEach(answer => answer.style.display = 'none');
+            result.style.display = 'none';
+            correction.style.display = 'none';
+            result.className = '';
+            celebration.style.display = 'none';
+            namePage.classList.add('active');
+            quizPage.classList.remove('active');
+            submit.disabled = true;
+            document.querySelectorAll('.celebration-effect').forEach(e => e.remove());
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>
